@@ -5,8 +5,17 @@ import torch.nn.functional as F
 from einops import rearrange
 from torch import nn
 
+
 def detach_clone(v):
     return v.detach().clone() if torch.is_tensor(v) else v
+
+
+def infer_history_size_from_predictor(predictor, default: int = 1) -> int:
+    pos_embedding = getattr(predictor, "pos_embedding", None)
+    if pos_embedding is None:
+        return default
+    return int(pos_embedding.shape[1])
+
 
 class JEPA(nn.Module):
 
@@ -140,41 +149,69 @@ class JEPA(nn.Module):
         """
 
         assert "pixels" in info, "pixels not in info_dict"
-        H = info["pixels"].size(2)
+
         B, S, T = action_sequence.shape[:3]
-        act_0, act_future = torch.split(action_sequence, [H, T - H], dim=2)
-        info["action"] = act_0
-        n_steps = T - H
+        pixels = info["pixels"]
+        if pixels.ndim == 5:
+            pixels = pixels.unsqueeze(1).expand(B, S, -1, -1, -1, -1)
+
+        history_size = min(history_size, pixels.size(2))
+        HS = history_size
 
         # copy and encode initial info dict
-        _init = {k: v[:, 0] for k, v in info.items() if torch.is_tensor(v)}
-        _init = self.encode(_init)
-        emb = info["emb"] = _init["emb"].unsqueeze(1).expand(B, S, -1, -1)
-        _init = {k: detach_clone(v) for k, v in _init.items()}
+        init_info = {
+            k: v[:, 0]
+            for k, v in info.items()
+            if torch.is_tensor(v) and k != "action"
+        }
+        init_info["pixels"] = pixels[:, 0]
+        init_info = self.encode(init_info)
+        emb = info["emb"] = init_info["emb"].unsqueeze(1).expand(B, S, -1, -1)
 
         # flatten batch and sample dimensions for rollout
         emb = rearrange(emb, "b s ... -> (b s) ...").clone()
-        act = rearrange(act_0, "b s ... -> (b s) ...")
-        act_future = rearrange(act_future, "b s ... -> (b s) ...")
+        future_actions = rearrange(action_sequence, "b s ... -> (b s) ...")
 
-        # rollout predictor autoregressively for n_steps
-        HS = history_size
-        for t in range(n_steps):
-            act_emb = self.action_encoder(act)
-            emb_trunc = emb[:, -HS:]  # (BS, HS, D)
-            act_trunc = act_emb[:, -HS:]  # (BS, HS, A_emb)
-            pred_emb = self.predict(emb_trunc, act_trunc)[:, -1:]  # (BS, 1, D)
-            emb = torch.cat([emb, pred_emb], dim=1)  # (BS, T+1, D)
+        past_actions = info.get("action")
+        if past_actions is None:
+            past_actions = future_actions.new_zeros(
+                future_actions.size(0), 0, future_actions.size(-1)
+            )
+        else:
+            if past_actions.ndim == 3:
+                past_actions = past_actions.unsqueeze(1).expand(B, S, -1, -1)
+            past_actions = rearrange(past_actions, "b s ... -> (b s) ...")
 
-            next_act = act_future[:, t : t + 1, :]  # (BS, 1, action_dim)
-            act = torch.cat([act, next_act], dim=1)  # (BS, T+1, action_dim)
+        prefix_len = max(HS - 1, 0)
+        if prefix_len > 0:
+            if past_actions.size(1) < prefix_len:
+                pad = future_actions.new_zeros(
+                    future_actions.size(0),
+                    prefix_len - past_actions.size(1),
+                    future_actions.size(-1),
+                )
+                past_actions = torch.cat([pad, past_actions], dim=1)
+            past_actions = past_actions[:, -prefix_len:]
 
-        # predict the last state
-        act_emb = self.action_encoder(act)  # (BS, T, A_emb)
-        emb_trunc = emb[:, -HS:]  # (BS, HS, D)
-        act_trunc = act_emb[:, -HS:]  # (BS, HS, A_emb)
-        pred_emb = self.predict(emb_trunc, act_trunc)[:, -1:]  # (BS, 1, D)
-        emb = torch.cat([emb, pred_emb], dim=1)
+        # rollout predictor autoregressively for each future action block
+        for t in range(T):
+            if prefix_len > 0:
+                action_context = torch.cat(
+                    [past_actions, future_actions[:, t : t + 1]], dim=1
+                )
+            else:
+                action_context = future_actions[:, t : t + 1]
+
+            act_emb = self.action_encoder(action_context)
+            emb_trunc = emb[:, -HS:]
+            act_trunc = act_emb[:, -HS:]
+            pred_emb = self.predict(emb_trunc, act_trunc)[:, -1:]
+            emb = torch.cat([emb, pred_emb], dim=1)
+
+            if prefix_len > 0:
+                past_actions = torch.cat(
+                    [past_actions, future_actions[:, t : t + 1]], dim=1
+                )[:, -prefix_len:]
 
         # unflatten batch and sample dimensions
         pred_rollout = rearrange(emb, "(b s) ... -> b s ...", b=B, s=S)
@@ -208,19 +245,19 @@ class JEPA(nn.Module):
             if torch.is_tensor(info_dict[k]):
                 info_dict[k] = info_dict[k].to(device)
 
-        goal = {k: v[:, 0] for k, v in info_dict.items() if torch.is_tensor(v)}
-        goal["pixels"] = goal["goal"]
-
-        for k in info_dict:
-            if k.startswith("goal_"):
-                goal[k[len("goal_") :]] = goal.pop(k)
-
-        goal.pop("action")
-        goal = self.encode(goal)
+        goal_pixels = info_dict["goal"][:, 0]
+        if goal_pixels.ndim == 4:
+            goal_pixels = goal_pixels.unsqueeze(1)
+        elif goal_pixels.ndim >= 5:
+            goal_pixels = goal_pixels[:, -1:]
+        goal = self.encode({"pixels": goal_pixels})
 
         info_dict["goal_emb"] = goal["emb"]
-        info_dict = self.rollout(info_dict, action_candidates)
+        history_size = infer_history_size_from_predictor(self.predictor)
+        info_dict = self.rollout(
+            info_dict, action_candidates, history_size=history_size
+        )
 
         cost = self.criterion(info_dict)
-        
+
         return cost

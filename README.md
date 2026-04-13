@@ -17,17 +17,18 @@ The implementation is based on the public [LeWorldModel](https://github.com/luca
   - `v1`: latent split + appearance invariance + independence penalty
   - `v2`: `v1` plus sequence-consistent augmentations, stop-grad invariance, nuisance prediction, and a dynamics-side nuisance adversary
 - Official PushT study configs with a matched 10-epoch budget.
+- Corrected evaluation pipeline with real history reconstruction, goal-step alignment, result overwrite, and auxiliary BatchNorm freezing.
 - Included report PDF, source TeX, figures, and result tables.
 
 ## Visual Summary
 
-Primary PushT planning outcome across the matched 50-episode study:
+Two-seed aggregate PushT planning outcome across the corrected study:
 
 ![PushT success rate](report/pusht_success_rate.png)
 
-Shared validation prediction loss across epochs for the main three models:
+Shared validation core loss across epochs for the main three models:
 
-![PushT validation prediction loss](report/pusht_val_pred_loss.png)
+![PushT validation core loss](report/pusht_val_core_loss.png)
 
 ## Repository Layout
 
@@ -120,9 +121,9 @@ python run_all.py --mode status --env pusht
 ### Train the baseline and AF variants
 
 ```bash
-python train.py --config-name=lewm_pusht_official_budget
-python train.py --config-name=aflewm_pusht_official_budget
-python train.py --config-name=aflewm_pusht_v2_official_budget
+python train.py --config-name=lewm_pusht_official_budget output_model_name=lewm_pusht_implfix_budget
+python train.py --config-name=aflewm_pusht_official_budget output_model_name=aflewm_pusht_implfix_budget_rerun
+python train.py --config-name=aflewm_pusht_v2_official_budget output_model_name=aflewm_pusht_v2_implfix_budget_rerun
 ```
 
 ### Evaluate a checkpoint on PushT
@@ -130,9 +131,15 @@ python train.py --config-name=aflewm_pusht_v2_official_budget
 Use checkpoint paths relative to `STABLEWM_HOME` and omit the `_object.ckpt` suffix:
 
 ```bash
-python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/lewm_pusht_official_budget/lewm_pusht_official_budget_epoch_10
-python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/aflewm_pusht_official_budget/aflewm_pusht_official_budget_epoch_10
-python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/aflewm_pusht_v2_official_budget/aflewm_pusht_v2_official_budget_epoch_10
+python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/lewm_pusht_implfix_budget/lewm_pusht_implfix_budget_epoch_10
+python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/aflewm_pusht_implfix_budget_rerun/aflewm_pusht_implfix_budget_rerun_epoch_10
+python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/aflewm_pusht_v2_implfix_budget_rerun/aflewm_pusht_v2_implfix_budget_rerun_epoch_10
+```
+
+Second evaluation seed:
+
+```bash
+python eval.py --config-name=pusht.yaml seed=43 policy=runs/pusht_expert_train/lewm_pusht_implfix_budget/lewm_pusht_implfix_budget_epoch_10 output.filename=pusht_results_seed43.txt
 ```
 
 ### Regenerate report assets
@@ -169,43 +176,32 @@ xelatex -interaction=nonstopmode -halt-on-error -output-directory=report report/
 
 ### Primary matched-compute PushT study
 
-10 epochs, 200 train batches per epoch, 20 validation batches per epoch, batch size 4, bf16, official PushT dataset.
+10 epochs, 200 train batches per epoch, 20 validation batches per epoch, batch size 4, bf16, official PushT dataset, and two 50-episode evaluation seeds.
 
-| Model | Params | Shared core loss | Success rate |
-| --- | ---: | ---: | ---: |
-| Baseline LeWM | 18.03M | 0.14695 | 4.0% (2/50) |
-| AF-LeWM-lite v1 | 18.17M | 0.16486 | 2.0% (1/50) |
-| AF-LeWM-lite v2 | 18.24M | 0.47264 | 6.0% (3/50) |
+| Model | Params | Shared core loss | Seed 42 | Seed 43 | Aggregate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Baseline LeWM | 18.03M | 0.14796 | 0/50 | 1/50 | 1/100 = 1.0% |
+| AF-LeWM-lite v1 | 18.17M | 0.14963 | 2/50 | 2/50 | 4/100 = 4.0% |
+| AF-LeWM-lite v2 | 18.24M | 0.15181 | 0/50 | 2/50 | 2/100 = 2.0% |
 
 Shared core loss is `pred_loss + 0.09 * sigreg_loss`, which is the fairest loss comparison across baseline, `v1`, and `v2`.
 
-### Follow-up `v2` sweep
-
-| Variant | Shared core loss | Success rate | Note |
-| --- | ---: | ---: | --- |
-| Baseline LeWM | 0.14695 | 4.0% (2/50) | Reference model |
-| AF-LeWM-lite v2 | 0.47264 | 6.0% (3/50) | Strongest single-seed control |
-| AF-LeWM-lite v2 no adversary | 0.14911 | 0.0% (0/50) | Removed dynamics nuisance adversary |
-| AF-LeWM-lite v2 soft | 0.36029 | 2.0% (1/50) | Reduced all auxiliary weights |
-| AF-LeWM-lite v2 grl half | 0.31445 | 2.0% (1/50) | Halved GRL lambda |
-
 ### Current conclusion
 
-- `v2` keeps a slight control edge over the baseline on official PushT.
-- The edge is fragile: the 100-episode aggregate is `5/100` for `v2` versus `4/100` for the baseline.
-- The dynamics nuisance adversary is the main mechanism behind that edge.
-- The next high-value experiment is adversary scheduling, especially delayed onset or ramped strength during training.
+- The corrected pipeline changes the earlier ranking. `v1` now has the best aggregate success rate, `v2` is second, and baseline is third.
+- The effect size is small. The two-seed totals are `4/100` for `v1`, `2/100` for `v2`, and `1/100` for baseline.
+- The confidence intervals overlap strongly, so the current result supports only a weak relative ordering.
+- Baseline still has the best shared JEPA objective. Both AF variants trade predictive quality for a small and uncertain control gain.
 
 See the full report for details:
 
 - [Main PushT report](report/pusht_aflewm_official_summary.pdf)
-- [Follow-up addendum](report/pusht_v2_followup_addendum.pdf)
 
 ## Notes
 
 - The repository keeps the LeWM-compatible training and planning interface intact.
-- Final conclusions in this repository are limited to official PushT experiments.
-- The current `v2` result supports a small control tradeoff and does not support a strong robustness claim yet.
+- Final conclusions in this repository are limited to official PushT experiments after the April 13, 2026 implementation fixes.
+- The current study supports a small exploratory edge for `v1` and does not support a strong robustness claim for any AF variant yet.
 
 ## License
 

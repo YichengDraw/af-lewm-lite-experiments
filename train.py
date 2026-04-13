@@ -1,6 +1,7 @@
 import os
 import signal
 import sys
+from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 
@@ -140,6 +141,20 @@ def _cross_covariance_loss(x, y):
     return cov.square().mean()
 
 
+@contextmanager
+def _freeze_batchnorm_stats(module):
+    batchnorm_states = []
+    for submodule in module.modules():
+        if isinstance(submodule, torch.nn.modules.batchnorm._BatchNorm):
+            batchnorm_states.append((submodule, submodule.training))
+            submodule.eval()
+    try:
+        yield
+    finally:
+        for submodule, was_training in batchnorm_states:
+            submodule.train(was_training)
+
+
 def lejepa_forward(self, batch, stage, cfg):
     """encode observations, predict next states, compute losses."""
 
@@ -174,8 +189,9 @@ def lejepa_forward(self, batch, stage, cfg):
         aug_a_pixels, nuisance_target_a = _appearance_augment(batch["pixels"], aflwm_cfg.augment)
         aug_b_pixels, nuisance_target_b = _appearance_augment(batch["pixels"], aflwm_cfg.augment)
 
-        aug_a = self.model.project_features(self.model.encode_pixels(aug_a_pixels))
-        aug_b = self.model.project_features(self.model.encode_pixels(aug_b_pixels))
+        with _freeze_batchnorm_stats(self.model.projector):
+            aug_a = self.model.project_features(self.model.encode_pixels(aug_a_pixels))
+            aug_b = self.model.project_features(self.model.encode_pixels(aug_b_pixels))
 
         dyn_a = F.normalize(aug_a["emb"], dim=-1)
         dyn_b = F.normalize(aug_b["emb"], dim=-1)

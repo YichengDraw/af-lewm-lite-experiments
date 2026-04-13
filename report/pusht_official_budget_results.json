@@ -4,13 +4,21 @@
       "model": "Baseline LeWM",
       "slug": "baseline",
       "params": 18034478,
-      "train_elapsed_seconds": 466.52,
-      "evaluation_time_seconds": 612.875054359436,
-      "success_rate": 4.0,
-      "validate_loss_epoch": 0.14706674218177795,
-      "validate_pred_loss_epoch": 0.0035120584070682526,
-      "validate_sigreg_loss_epoch": 1.59375,
-      "shared_core_loss_epoch": 0.14694955840706825,
+      "train_elapsed_seconds": 477.7,
+      "evaluation_time_seed42_seconds": 944.5896461009979,
+      "evaluation_time_seed43_seconds": 861.7343287467957,
+      "evaluation_time_mean_seconds": 903.1619874238968,
+      "success_seed42_percent": 0.0,
+      "success_seed43_percent": 2.0,
+      "aggregate_successes": 1,
+      "aggregate_episodes": 100,
+      "aggregate_success_percent": 1.0,
+      "aggregate_wilson95_low_percent": 0.17673865655472645,
+      "aggregate_wilson95_high_percent": 5.4487524760934605,
+      "validate_loss_epoch": 0.14790001511573792,
+      "validate_pred_loss_epoch": 0.004980088211596012,
+      "validate_sigreg_loss_epoch": 1.5886719226837158,
+      "shared_core_loss_epoch": 0.14796056125313042,
       "validate_appearance_inv_loss_epoch": null,
       "validate_appearance_indep_loss_epoch": null,
       "validate_appearance_nuisance_loss_epoch": null,
@@ -20,15 +28,23 @@
       "model": "AF-LeWM-lite v1",
       "slug": "af_v1",
       "params": 18167150,
-      "train_elapsed_seconds": 750.55,
-      "evaluation_time_seconds": 636.8716049194336,
-      "success_rate": 2.0,
-      "validate_loss_epoch": 0.165065735578537,
-      "validate_pred_loss_epoch": 0.015661245211958885,
-      "validate_sigreg_loss_epoch": 1.657812476158142,
-      "shared_core_loss_epoch": 0.16486436806619167,
-      "validate_appearance_inv_loss_epoch": 0.0003925558121409267,
-      "validate_appearance_indep_loss_epoch": 2.741530613636911e-11,
+      "train_elapsed_seconds": 900.3,
+      "evaluation_time_seed42_seconds": 907.5126707553864,
+      "evaluation_time_seed43_seconds": 863.8623707294464,
+      "evaluation_time_mean_seconds": 885.6875207424164,
+      "success_seed42_percent": 4.0,
+      "success_seed43_percent": 4.0,
+      "aggregate_successes": 4,
+      "aggregate_episodes": 100,
+      "aggregate_success_percent": 4.0,
+      "aggregate_wilson95_low_percent": 1.5663050551848017,
+      "aggregate_wilson95_high_percent": 9.837217232607372,
+      "validate_loss_epoch": 0.15034602582454681,
+      "validate_pred_loss_epoch": 0.006683575455099344,
+      "validate_sigreg_loss_epoch": 1.588281273841858,
+      "shared_core_loss_epoch": 0.14962889010086655,
+      "validate_appearance_inv_loss_epoch": 0.0079135587438941,
+      "validate_appearance_indep_loss_epoch": 2.607410398702825e-10,
       "validate_appearance_nuisance_loss_epoch": null,
       "validate_dynamics_nuisance_loss_epoch": null
     },
@@ -36,144 +52,182 @@
       "model": "AF-LeWM-lite v2",
       "slug": "af_v2",
       "params": 18236792,
-      "train_elapsed_seconds": 805.34,
-      "evaluation_time_seconds": 641.158572435379,
-      "success_rate": 6.0,
-      "validate_loss_epoch": 0.5328698754310608,
-      "validate_pred_loss_epoch": 0.2537558376789093,
-      "validate_sigreg_loss_epoch": 2.4320311546325684,
-      "shared_core_loss_epoch": 0.47263864159584046,
-      "validate_appearance_inv_loss_epoch": 0.007044374942779541,
-      "validate_appearance_indep_loss_epoch": 2.237247019587496e-11,
-      "validate_appearance_nuisance_loss_epoch": 0.18147408962249756,
-      "validate_dynamics_nuisance_loss_epoch": 0.8263373374938965
+      "train_elapsed_seconds": 987.9,
+      "evaluation_time_seed42_seconds": 887.1142935752869,
+      "evaluation_time_seed43_seconds": 874.5097751617432,
+      "evaluation_time_mean_seconds": 880.812034368515,
+      "success_seed42_percent": 0.0,
+      "success_seed43_percent": 4.0,
+      "aggregate_successes": 2,
+      "aggregate_episodes": 100,
+      "aggregate_success_percent": 2.0,
+      "aggregate_wilson95_low_percent": 0.5501852234968179,
+      "aggregate_wilson95_high_percent": 7.001316294199366,
+      "validate_loss_epoch": 0.20298552513122559,
+      "validate_pred_loss_epoch": 0.010168509557843208,
+      "validate_sigreg_loss_epoch": 1.573828101158142,
+      "shared_core_loss_epoch": 0.151813038662076,
+      "validate_appearance_inv_loss_epoch": 0.008224631659686565,
+      "validate_appearance_indep_loss_epoch": 7.345042907225263e-10,
+      "validate_appearance_nuisance_loss_epoch": 0.19594421982765198,
+      "validate_dynamics_nuisance_loss_epoch": 0.6159708499908447
     }
   ],
   "curves": {
     "Baseline LeWM": [
       {
         "epoch": 1,
-        "validate_pred_loss_epoch": 0.9185261726379395
+        "validate_pred_loss_epoch": 1.0301792621612549,
+        "shared_core_loss_epoch": 1.3820230078697204
       },
       {
         "epoch": 2,
-        "validate_pred_loss_epoch": 0.7326334714889526
+        "validate_pred_loss_epoch": 0.6137756109237671,
+        "shared_core_loss_epoch": 0.9044474816322327
       },
       {
         "epoch": 3,
-        "validate_pred_loss_epoch": 0.5869913101196289
+        "validate_pred_loss_epoch": 0.5514300465583801,
+        "shared_core_loss_epoch": 0.8309925508499145
       },
       {
         "epoch": 4,
-        "validate_pred_loss_epoch": 0.4253219664096832
+        "validate_pred_loss_epoch": 0.38529378175735474,
+        "shared_core_loss_epoch": 0.6256922149658203
       },
       {
         "epoch": 5,
-        "validate_pred_loss_epoch": 0.2689345180988312
+        "validate_pred_loss_epoch": 0.2493731677532196,
+        "shared_core_loss_epoch": 0.4546856677532196
       },
       {
         "epoch": 6,
-        "validate_pred_loss_epoch": 0.10287030041217804
+        "validate_pred_loss_epoch": 0.10552344471216202,
+        "shared_core_loss_epoch": 0.27659375935792924
       },
       {
         "epoch": 7,
-        "validate_pred_loss_epoch": 0.04709120839834213
+        "validate_pred_loss_epoch": 0.03769855946302414,
+        "shared_core_loss_epoch": 0.1891516801714897
       },
       {
         "epoch": 8,
-        "validate_pred_loss_epoch": 0.015260757878422737
+        "validate_pred_loss_epoch": 0.012045699171721935,
+        "shared_core_loss_epoch": 0.15748710971325636
       },
       {
         "epoch": 9,
-        "validate_pred_loss_epoch": 0.00444703409448266
+        "validate_pred_loss_epoch": 0.005789839196950197,
+        "shared_core_loss_epoch": 0.1492273391969502
       },
       {
         "epoch": 10,
-        "validate_pred_loss_epoch": 0.0035120584070682526
+        "validate_pred_loss_epoch": 0.004980088211596012,
+        "shared_core_loss_epoch": 0.14796056125313042
       }
     ],
     "AF-LeWM-lite v1": [
       {
         "epoch": 1,
-        "validate_pred_loss_epoch": 0.1066988855600357
+        "validate_pred_loss_epoch": 4.750698089599609,
+        "shared_core_loss_epoch": 5.458604331016541
       },
       {
         "epoch": 2,
-        "validate_pred_loss_epoch": 0.06543616950511932
+        "validate_pred_loss_epoch": 4.167323112487793,
+        "shared_core_loss_epoch": 4.837401237487793
       },
       {
         "epoch": 3,
-        "validate_pred_loss_epoch": 0.03032624162733555
+        "validate_pred_loss_epoch": 3.83683705329895,
+        "shared_core_loss_epoch": 4.4896183204650875
       },
       {
         "epoch": 4,
-        "validate_pred_loss_epoch": 0.01890605129301548
+        "validate_pred_loss_epoch": 3.646836042404175,
+        "shared_core_loss_epoch": 4.285414175987244
       },
       {
         "epoch": 5,
-        "validate_pred_loss_epoch": 0.01871171034872532
+        "validate_pred_loss_epoch": 3.242885112762451,
+        "shared_core_loss_epoch": 3.861635112762451
       },
       {
         "epoch": 6,
-        "validate_pred_loss_epoch": 0.017763257026672363
+        "validate_pred_loss_epoch": 2.5809683799743652,
+        "shared_core_loss_epoch": 3.145577754974365
       },
       {
         "epoch": 7,
-        "validate_pred_loss_epoch": 0.013064038939774036
+        "validate_pred_loss_epoch": 1.8867162466049194,
+        "shared_core_loss_epoch": 2.3811537551879884
       },
       {
         "epoch": 8,
-        "validate_pred_loss_epoch": 0.01774093694984913
+        "validate_pred_loss_epoch": 1.2419239282608032,
+        "shared_core_loss_epoch": 1.6480489110946654
       },
       {
         "epoch": 9,
-        "validate_pred_loss_epoch": 0.027161037549376488
+        "validate_pred_loss_epoch": 0.555208683013916,
+        "shared_core_loss_epoch": 0.8363180494308471
       },
       {
         "epoch": 10,
-        "validate_pred_loss_epoch": 0.015661245211958885
+        "validate_pred_loss_epoch": 0.006683575455099344,
+        "shared_core_loss_epoch": 0.14962889010086655
       }
     ],
     "AF-LeWM-lite v2": [
       {
         "epoch": 1,
-        "validate_pred_loss_epoch": 3.013514280319214
+        "validate_pred_loss_epoch": 86.60315704345703,
+        "shared_core_loss_epoch": 87.82096954345702
       },
       {
         "epoch": 2,
-        "validate_pred_loss_epoch": 1.6673078536987305
+        "validate_pred_loss_epoch": 72.27657318115234,
+        "shared_core_loss_epoch": 73.4758231639862
       },
       {
         "epoch": 3,
-        "validate_pred_loss_epoch": 0.33155113458633423
+        "validate_pred_loss_epoch": 32.37260437011719,
+        "shared_core_loss_epoch": 33.47904185295105
       },
       {
         "epoch": 4,
-        "validate_pred_loss_epoch": 1.1011911630630493
+        "validate_pred_loss_epoch": 27.6846923828125,
+        "shared_core_loss_epoch": 28.761598615646363
       },
       {
         "epoch": 5,
-        "validate_pred_loss_epoch": 0.3511136472225189
+        "validate_pred_loss_epoch": 11.917774200439453,
+        "shared_core_loss_epoch": 12.839711666107178
       },
       {
         "epoch": 6,
-        "validate_pred_loss_epoch": 0.3797951936721802
+        "validate_pred_loss_epoch": 2.4435677528381348,
+        "shared_core_loss_epoch": 3.0005833864212037
       },
       {
         "epoch": 7,
-        "validate_pred_loss_epoch": 0.1340804398059845
+        "validate_pred_loss_epoch": 2.076296329498291,
+        "shared_core_loss_epoch": 2.5876088380813598
       },
       {
         "epoch": 8,
-        "validate_pred_loss_epoch": 0.48473700881004333
+        "validate_pred_loss_epoch": 1.152180790901184,
+        "shared_core_loss_epoch": 1.543118290901184
       },
       {
         "epoch": 9,
-        "validate_pred_loss_epoch": 0.6125636100769043
+        "validate_pred_loss_epoch": 0.4160779118537903,
+        "shared_core_loss_epoch": 0.6637888407707214
       },
       {
         "epoch": 10,
-        "validate_pred_loss_epoch": 0.2537558376789093
+        "validate_pred_loss_epoch": 0.010168509557843208,
+        "shared_core_loss_epoch": 0.151813038662076
       }
     ]
   }

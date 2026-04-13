@@ -1,5 +1,8 @@
 import os
 import sys
+from copy import deepcopy
+from pathlib import Path
+from typing import Any
 
 if os.name != "nt":
     os.environ["MUJOCO_GL"] = "egl"
@@ -13,7 +16,6 @@ if os.name == "nt":
             pass
 
 import time
-from pathlib import Path
 
 import hydra
 import numpy as np
@@ -23,6 +25,15 @@ from omegaconf import DictConfig, OmegaConf
 from sklearn import preprocessing
 from torchvision.transforms import v2 as transforms
 import stable_worldmodel as swm
+
+
+def infer_model_history_size(model) -> int:
+    predictor = getattr(model, "predictor", None)
+    pos_embedding = getattr(predictor, "pos_embedding", None)
+    if pos_embedding is None:
+        return 1
+    return int(pos_embedding.shape[1])
+
 
 def img_transform(cfg):
     transform = transforms.Compose(
@@ -56,43 +67,331 @@ def get_dataset(cfg, dataset_name):
     )
     return dataset
 
+
+def build_planning_context(
+    info_dict: dict,
+    *,
+    history_len: int,
+    action_block: int,
+    block_action_dim: int,
+) -> dict:
+    pixels = info_dict["pixels"]
+    raw_actions = info_dict["action"]
+    context_span = history_len * action_block
+
+    if pixels.size(1) < context_span:
+        raise ValueError(
+            f"Need {context_span} raw history steps, got {pixels.size(1)}"
+        )
+    if raw_actions.size(1) < context_span:
+        raise ValueError(
+            f"Need {context_span} raw action steps, got {raw_actions.size(1)}"
+        )
+
+    pixels = pixels[:, -context_span:]
+    raw_actions = raw_actions[:, -context_span:]
+    select_idx = torch.arange(
+        action_block - 1,
+        context_span,
+        action_block,
+        device=pixels.device,
+    )
+
+    planner_info = {
+        "pixels": pixels.index_select(1, select_idx),
+    }
+
+    goal = info_dict["goal"]
+    planner_info["goal"] = goal[:, -1:] if goal.ndim >= 5 else goal.unsqueeze(1)
+
+    past_blocks = []
+    for offset in range(history_len - 1):
+        start = (offset + 1) * action_block
+        end = (offset + 2) * action_block
+        past_blocks.append(
+            raw_actions[:, start:end].reshape(raw_actions.size(0), 1, -1)
+        )
+
+    if past_blocks:
+        planner_info["action"] = torch.cat(past_blocks, dim=1)
+    else:
+        planner_info["action"] = raw_actions.new_zeros(
+            raw_actions.size(0), 0, block_action_dim
+        )
+
+    return planner_info
+
+
+def find_stacked_wrapper(env):
+    current = env
+    for _ in range(10):
+        if current is None:
+            return None
+        if current.__class__.__name__ == "StackedWrapper":
+            return current
+        current = getattr(current, "env", None)
+    return None
+
+
+def seed_history_buffers(
+    world,
+    history_payload: dict[str, np.ndarray],
+    goal_history_payload: dict[str, np.ndarray],
+) -> None:
+    for env_idx, env in enumerate(world.envs.unwrapped.envs):
+        stacked = find_stacked_wrapper(env)
+        if stacked is None:
+            continue
+
+        for key, sequence in history_payload.items():
+            if key not in stacked.buffers:
+                continue
+            buffer = stacked.buffers[key]
+            buffer.clear()
+            buffer.extend([sequence[env_idx, t] for t in range(sequence.shape[1])])
+
+        for key, sequence in goal_history_payload.items():
+            if key not in stacked.buffers:
+                continue
+            buffer = stacked.buffers[key]
+            buffer.clear()
+            buffer.extend([sequence[env_idx, t] for t in range(sequence.shape[1])])
+
+
+def to_numpy_step(value: Any):
+    if isinstance(value, torch.Tensor):
+        value = value.cpu().numpy()
+    if isinstance(value, np.ndarray):
+        return value.copy()
+    return np.asarray(value)
+
+
+def extract_dataset_eval_payload(
+    data,
+    columns,
+    *,
+    history_span: int,
+    goal_offset_steps: int,
+):
+    init_step_per_env = {}
+    goal_step_per_env = {}
+    history_payload = {}
+    goal_history_payload = {}
+
+    for col in columns:
+        history_values = []
+        init_values = []
+        goal_values = []
+
+        for ep in data:
+            series = ep[col]
+            if col.startswith("pixels"):
+                series = series.permute(0, 2, 3, 1)
+            if isinstance(series, torch.Tensor):
+                series = series.cpu().numpy()
+
+            history = np.array(series[:history_span], copy=True)
+            current = np.array(series[history_span - 1], copy=True)
+            goal = np.array(series[history_span - 1 + goal_offset_steps], copy=True)
+
+            history_values.append(history)
+            init_values.append(current)
+            goal_values.append(goal)
+
+        history_payload[col] = np.stack(history_values)
+        init_step_per_env[col] = np.stack(init_values)
+        goal_key = "goal" if col == "pixels" else f"goal_{col}"
+        goal_step_per_env[goal_key] = np.stack(goal_values)
+        goal_history_payload[goal_key] = np.repeat(
+            goal_step_per_env[goal_key][:, None, ...], history_span, axis=1
+        )
+
+    return init_step_per_env, goal_step_per_env, history_payload, goal_history_payload
+
+
+def apply_dataset_callables(world, init_step, callables):
+    callables = callables or []
+    for env_idx, env in enumerate(world.envs.unwrapped.envs):
+        env_unwrapped = env.unwrapped
+        for spec in callables:
+            method_name = spec["method"]
+            if not hasattr(env_unwrapped, method_name):
+                continue
+
+            args = spec.get("args", spec)
+            prepared_args = {}
+            for arg_name, arg_data in args.items():
+                value = arg_data.get("value", None)
+                in_dataset = arg_data.get("in_dataset", True)
+                if in_dataset:
+                    if value not in init_step:
+                        continue
+                    prepared_args[arg_name] = to_numpy_step(init_step[value][env_idx])
+                else:
+                    prepared_args[arg_name] = value
+            getattr(env_unwrapped, method_name)(**prepared_args)
+
+
+def evaluate_from_dataset_fixed(
+    world,
+    dataset,
+    *,
+    episodes_idx,
+    start_steps,
+    goal_offset_steps,
+    eval_budget,
+    callables,
+    save_video,
+    video_path,
+    history_span,
+):
+    ep_idx_arr = np.asarray(episodes_idx)
+    start_steps_arr = np.asarray(start_steps)
+    history_start = start_steps_arr - (history_span - 1)
+    end_steps = start_steps_arr + goal_offset_steps + 1
+
+    data = dataset.load_chunk(ep_idx_arr, history_start, end_steps)
+    columns = dataset.column_names
+    init_step, goal_step, history_payload, goal_history_payload = (
+        extract_dataset_eval_payload(
+            data,
+            columns,
+            history_span=history_span,
+            goal_offset_steps=goal_offset_steps,
+        )
+    )
+
+    seeds = init_step.get("seed")
+    if seeds is not None:
+        seeds = [int(v) for v in np.asarray(seeds).tolist()]
+
+    world.reset(seed=seeds)
+    callable_state = deepcopy(init_step)
+    callable_state.update(deepcopy(goal_step))
+    apply_dataset_callables(world, callable_state, callables)
+
+    world.infos.update({k: v.copy() for k, v in history_payload.items()})
+    world.infos.update({k: v.copy() for k, v in goal_history_payload.items()})
+    seed_history_buffers(world, history_payload, goal_history_payload)
+
+    results = {
+        "success_rate": 0.0,
+        "episode_successes": np.zeros(len(ep_idx_arr), dtype=bool),
+        "seeds": np.asarray(seeds) if seeds is not None else None,
+    }
+
+    video_frames = np.empty(
+        (world.num_envs, eval_budget, *world.infos["pixels"].shape[-3:]),
+        dtype=np.uint8,
+    )
+
+    for step_idx in range(eval_budget):
+        video_frames[:, step_idx] = world.infos["pixels"][:, -1]
+        world.infos.update({k: v.copy() for k, v in goal_history_payload.items()})
+        world.step()
+        results["episode_successes"] = np.logical_or(
+            results["episode_successes"], np.asarray(world.terminateds, dtype=bool)
+        )
+        world.envs.unwrapped._autoreset_envs = np.zeros((world.num_envs,))
+
+    video_frames[:, -1] = world.infos["pixels"][:, -1]
+    results["success_rate"] = (
+        float(np.sum(results["episode_successes"])) / len(ep_idx_arr) * 100.0
+    )
+
+    if save_video:
+        import imageio
+
+        video_path = Path(video_path)
+        video_path.mkdir(parents=True, exist_ok=True)
+        goal_frames = goal_history_payload["goal"][:, -1]
+        for env_idx in range(world.num_envs):
+            out = imageio.get_writer(
+                video_path / f"rollout_{env_idx}.mp4",
+                fps=15,
+                codec="libx264",
+            )
+            goals = np.vstack([goal_frames[env_idx], goal_frames[env_idx]])
+            for t in range(eval_budget):
+                stacked_frame = np.vstack(
+                    [video_frames[env_idx, t], goal_frames[env_idx]]
+                )
+                out.append_data(np.hstack([stacked_frame, goals]))
+            out.close()
+
+    return results
+
+
+class LeWMEvalPolicy(swm.policy.WorldModelPolicy):
+    def __init__(self, *args, model_history_size: int, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model_history_size = model_history_size
+
+    def get_action(self, info_dict: dict, **kwargs):
+        assert hasattr(self, "env"), "Environment not set for the policy"
+        assert "pixels" in info_dict, "'pixels' must be provided in info_dict"
+        assert "goal" in info_dict, "'goal' must be provided in info_dict"
+
+        if len(self._action_buffer) == 0:
+            prepared = self._prepare_info(info_dict)
+            planner_info = build_planning_context(
+                prepared,
+                history_len=self.model_history_size,
+                action_block=self.cfg.action_block,
+                block_action_dim=self.solver.action_dim,
+            )
+            outputs = self.solver(planner_info, init_action=self._next_init)
+
+            actions = outputs["actions"]
+            keep_horizon = self.cfg.receding_horizon
+            plan = actions[:, :keep_horizon]
+            rest = actions[:, keep_horizon:]
+            self._next_init = rest if self.cfg.warm_start else None
+            plan = plan.reshape(self.env.num_envs, self.flatten_receding_horizon, -1)
+            self._action_buffer.extend(plan.transpose(0, 1))
+
+        action = self._action_buffer.popleft()
+        action = action.reshape(*self.env.action_space.shape)
+        action = action.numpy()
+
+        if "action" in self.process:
+            action = self.process["action"].inverse_transform(action)
+
+        return action
+
+
 @hydra.main(version_base=None, config_path="./config/eval", config_name="pusht")
 def run(cfg: DictConfig):
-    """Run evaluation of dinowm vs random policy."""
+    """Run evaluation of world-model planning on PushT."""
     assert (
         cfg.plan_config.horizon * cfg.plan_config.action_block <= cfg.eval.eval_budget
     ), "Planning horizon must be smaller than or equal to eval_budget"
 
-    # create world environment
-    cfg.world.max_episode_steps = 2 * cfg.eval.eval_budget
-    world = swm.World(**cfg.world, image_shape=(224, 224))
-
-    # create the transform
     transform = {
         "pixels": img_transform(cfg),
         "goal": img_transform(cfg),
     }
 
     dataset = get_dataset(cfg, cfg.eval.dataset_name)
-    stats_dataset = dataset  # get_dataset(cfg, cfg.dataset.stats)
+    stats_dataset = dataset
     col_name = "episode_idx" if "episode_idx" in dataset.column_names else "ep_idx"
     ep_indices, _ = np.unique(stats_dataset.get_col_data(col_name), return_index=True)
 
     process = {}
     for col in cfg.dataset.keys_to_cache:
-        if col in ["pixels"]:
+        if col == "pixels":
             continue
         processor = preprocessing.StandardScaler()
         col_data = stats_dataset.get_col_data(col)
         col_data = col_data[~np.isnan(col_data).any(axis=1)]
         processor.fit(col_data)
         process[col] = processor
-
         if col != "action":
             process[f"goal_{col}"] = process[col]
 
-    # -- run evaluation
     policy = cfg.get("policy", "random")
+    model_history_size = 1
+    history_span = 1
 
     if policy != "random":
         device = cfg.solver.device
@@ -101,48 +400,58 @@ def run(cfg: DictConfig):
         model = model.eval()
         model.requires_grad_(False)
         model.interpolate_pos_encoding = True
-        config = swm.PlanConfig(**cfg.plan_config)
-        solver = hydra.utils.instantiate(cfg.solver, model=model)
-        policy = swm.policy.WorldModelPolicy(
-            solver=solver, config=config, process=process, transform=transform
-        )
 
+        model_history_size = infer_model_history_size(model)
+        history_span = model_history_size * cfg.plan_config.action_block
+        cfg.world.history_size = history_span
+        cfg.world.frame_skip = 1
+
+        plan_config = OmegaConf.to_container(cfg.plan_config, resolve=True)
+        plan_config["history_len"] = model_history_size
+        config = swm.PlanConfig(**plan_config)
+        solver = hydra.utils.instantiate(cfg.solver, model=model)
+        policy = LeWMEvalPolicy(
+            solver=solver,
+            config=config,
+            process=process,
+            transform=transform,
+            model_history_size=model_history_size,
+        )
     else:
         policy = swm.policy.RandomPolicy()
 
-    results_path = (
+    cfg.world.max_episode_steps = 2 * cfg.eval.eval_budget
+    world = swm.World(**cfg.world, image_shape=(224, 224))
+
+    results_dir = (
         Path(swm.data.utils.get_cache_dir(), cfg.policy).parent
         if cfg.policy != "random"
         else Path(__file__).parent
     )
 
-    # sample the episodes and the starting indices
     episode_len = get_episodes_length(dataset, ep_indices)
     max_start_idx = episode_len - cfg.eval.goal_offset_steps - 1
     max_start_idx_dict = {ep_id: max_start_idx[i] for i, ep_id in enumerate(ep_indices)}
-    # Map each dataset row’s episode_idx to its max_start_idx
-    col_name = "episode_idx" if "episode_idx" in dataset.column_names else "ep_idx"
+    step_idx = dataset.get_col_data("step_idx")
     max_start_per_row = np.array(
         [max_start_idx_dict[ep_id] for ep_id in dataset.get_col_data(col_name)]
     )
-
-    # remove all the lines of dataset for which dataset['step_idx'] > max_start_per_row
-    valid_mask = dataset.get_col_data("step_idx") <= max_start_per_row
+    min_start_idx = history_span - 1
+    valid_mask = (step_idx >= min_start_idx) & (step_idx <= max_start_per_row)
     valid_indices = np.nonzero(valid_mask)[0]
     print(valid_mask.sum(), "valid starting points found for evaluation.")
 
     g = np.random.default_rng(cfg.seed)
     random_episode_indices = g.choice(
-        len(valid_indices) - 1, size=cfg.eval.num_eval, replace=False
+        len(valid_indices), size=cfg.eval.num_eval, replace=False
     )
-
-    # sort increasingly to avoid issues with HDF5Dataset indexing
     random_episode_indices = np.sort(valid_indices[random_episode_indices])
 
     print(random_episode_indices)
 
-    eval_episodes = dataset.get_row_data(random_episode_indices)[col_name]
-    eval_start_idx = dataset.get_row_data(random_episode_indices)["step_idx"]
+    eval_rows = dataset.get_row_data(random_episode_indices)
+    eval_episodes = eval_rows[col_name]
+    eval_start_idx = eval_rows["step_idx"]
 
     if len(eval_episodes) < cfg.eval.num_eval:
         raise ValueError("Not enough episodes with sufficient length for evaluation.")
@@ -150,7 +459,8 @@ def run(cfg: DictConfig):
     world.set_policy(policy)
 
     start_time = time.time()
-    metrics = world.evaluate_from_dataset(
+    metrics = evaluate_from_dataset_fixed(
+        world,
         dataset,
         start_steps=eval_start_idx.tolist(),
         goal_offset_steps=cfg.eval.goal_offset_steps,
@@ -158,22 +468,20 @@ def run(cfg: DictConfig):
         episodes_idx=eval_episodes.tolist(),
         callables=OmegaConf.to_container(cfg.eval.get("callables"), resolve=True),
         save_video=cfg.output.get("save_video", False),
-        video_path=results_path,
+        video_path=results_dir,
+        history_span=history_span,
     )
     end_time = time.time()
-    
+
     print(metrics)
 
-    results_path = results_path / cfg.output.filename
+    results_path = results_dir / cfg.output.filename
     results_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with results_path.open("a") as f:
-        f.write("\n")  # separate from previous runs
-
+    with results_path.open("w") as f:
         f.write("==== CONFIG ====\n")
         f.write(OmegaConf.to_yaml(cfg))
         f.write("\n")
-
         f.write("==== RESULTS ====\n")
         f.write(f"metrics: {metrics}\n")
         f.write(f"evaluation_time: {end_time - start_time} seconds\n")
