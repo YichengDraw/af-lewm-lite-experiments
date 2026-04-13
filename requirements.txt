@@ -1,0 +1,6 @@
+stable-worldmodel[train,env]
+stable-pretraining
+huggingface-hub
+zstandard
+matplotlib
+pandas

@@ -1,6 +1,16 @@
 import os
+import sys
 
-os.environ["MUJOCO_GL"] = "egl"
+if os.name != "nt":
+    os.environ["MUJOCO_GL"] = "egl"
+os.environ.setdefault("STABLEWM_HOME", os.path.expanduser("~/.stable-wm"))
+
+if os.name == "nt":
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
 
 import time
 from pathlib import Path
@@ -85,8 +95,9 @@ def run(cfg: DictConfig):
     policy = cfg.get("policy", "random")
 
     if policy != "random":
+        device = cfg.solver.device
         model = swm.policy.AutoCostModel(cfg.policy)
-        model = model.to("cuda")
+        model = model.to(device)
         model = model.eval()
         model.requires_grad_(False)
         model.interpolate_pos_encoding = True
@@ -146,6 +157,7 @@ def run(cfg: DictConfig):
         eval_budget=cfg.eval.eval_budget,
         episodes_idx=eval_episodes.tolist(),
         callables=OmegaConf.to_container(cfg.eval.get("callables"), resolve=True),
+        save_video=cfg.output.get("save_video", False),
         video_path=results_path,
     )
     end_time = time.time()

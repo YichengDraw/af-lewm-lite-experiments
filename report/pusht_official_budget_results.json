@@ -1,0 +1,180 @@
+{
+  "summary": [
+    {
+      "model": "Baseline LeWM",
+      "slug": "baseline",
+      "params": 18034478,
+      "train_elapsed_seconds": 466.52,
+      "evaluation_time_seconds": 612.875054359436,
+      "success_rate": 4.0,
+      "validate_loss_epoch": 0.14706674218177795,
+      "validate_pred_loss_epoch": 0.0035120584070682526,
+      "validate_sigreg_loss_epoch": 1.59375,
+      "shared_core_loss_epoch": 0.14694955840706825,
+      "validate_appearance_inv_loss_epoch": null,
+      "validate_appearance_indep_loss_epoch": null,
+      "validate_appearance_nuisance_loss_epoch": null,
+      "validate_dynamics_nuisance_loss_epoch": null
+    },
+    {
+      "model": "AF-LeWM-lite v1",
+      "slug": "af_v1",
+      "params": 18167150,
+      "train_elapsed_seconds": 750.55,
+      "evaluation_time_seconds": 636.8716049194336,
+      "success_rate": 2.0,
+      "validate_loss_epoch": 0.165065735578537,
+      "validate_pred_loss_epoch": 0.015661245211958885,
+      "validate_sigreg_loss_epoch": 1.657812476158142,
+      "shared_core_loss_epoch": 0.16486436806619167,
+      "validate_appearance_inv_loss_epoch": 0.0003925558121409267,
+      "validate_appearance_indep_loss_epoch": 2.741530613636911e-11,
+      "validate_appearance_nuisance_loss_epoch": null,
+      "validate_dynamics_nuisance_loss_epoch": null
+    },
+    {
+      "model": "AF-LeWM-lite v2",
+      "slug": "af_v2",
+      "params": 18236792,
+      "train_elapsed_seconds": 805.34,
+      "evaluation_time_seconds": 641.158572435379,
+      "success_rate": 6.0,
+      "validate_loss_epoch": 0.5328698754310608,
+      "validate_pred_loss_epoch": 0.2537558376789093,
+      "validate_sigreg_loss_epoch": 2.4320311546325684,
+      "shared_core_loss_epoch": 0.47263864159584046,
+      "validate_appearance_inv_loss_epoch": 0.007044374942779541,
+      "validate_appearance_indep_loss_epoch": 2.237247019587496e-11,
+      "validate_appearance_nuisance_loss_epoch": 0.18147408962249756,
+      "validate_dynamics_nuisance_loss_epoch": 0.8263373374938965
+    }
+  ],
+  "curves": {
+    "Baseline LeWM": [
+      {
+        "epoch": 1,
+        "validate_pred_loss_epoch": 0.9185261726379395
+      },
+      {
+        "epoch": 2,
+        "validate_pred_loss_epoch": 0.7326334714889526
+      },
+      {
+        "epoch": 3,
+        "validate_pred_loss_epoch": 0.5869913101196289
+      },
+      {
+        "epoch": 4,
+        "validate_pred_loss_epoch": 0.4253219664096832
+      },
+      {
+        "epoch": 5,
+        "validate_pred_loss_epoch": 0.2689345180988312
+      },
+      {
+        "epoch": 6,
+        "validate_pred_loss_epoch": 0.10287030041217804
+      },
+      {
+        "epoch": 7,
+        "validate_pred_loss_epoch": 0.04709120839834213
+      },
+      {
+        "epoch": 8,
+        "validate_pred_loss_epoch": 0.015260757878422737
+      },
+      {
+        "epoch": 9,
+        "validate_pred_loss_epoch": 0.00444703409448266
+      },
+      {
+        "epoch": 10,
+        "validate_pred_loss_epoch": 0.0035120584070682526
+      }
+    ],
+    "AF-LeWM-lite v1": [
+      {
+        "epoch": 1,
+        "validate_pred_loss_epoch": 0.1066988855600357
+      },
+      {
+        "epoch": 2,
+        "validate_pred_loss_epoch": 0.06543616950511932
+      },
+      {
+        "epoch": 3,
+        "validate_pred_loss_epoch": 0.03032624162733555
+      },
+      {
+        "epoch": 4,
+        "validate_pred_loss_epoch": 0.01890605129301548
+      },
+      {
+        "epoch": 5,
+        "validate_pred_loss_epoch": 0.01871171034872532
+      },
+      {
+        "epoch": 6,
+        "validate_pred_loss_epoch": 0.017763257026672363
+      },
+      {
+        "epoch": 7,
+        "validate_pred_loss_epoch": 0.013064038939774036
+      },
+      {
+        "epoch": 8,
+        "validate_pred_loss_epoch": 0.01774093694984913
+      },
+      {
+        "epoch": 9,
+        "validate_pred_loss_epoch": 0.027161037549376488
+      },
+      {
+        "epoch": 10,
+        "validate_pred_loss_epoch": 0.015661245211958885
+      }
+    ],
+    "AF-LeWM-lite v2": [
+      {
+        "epoch": 1,
+        "validate_pred_loss_epoch": 3.013514280319214
+      },
+      {
+        "epoch": 2,
+        "validate_pred_loss_epoch": 1.6673078536987305
+      },
+      {
+        "epoch": 3,
+        "validate_pred_loss_epoch": 0.33155113458633423
+      },
+      {
+        "epoch": 4,
+        "validate_pred_loss_epoch": 1.1011911630630493
+      },
+      {
+        "epoch": 5,
+        "validate_pred_loss_epoch": 0.3511136472225189
+      },
+      {
+        "epoch": 6,
+        "validate_pred_loss_epoch": 0.3797951936721802
+      },
+      {
+        "epoch": 7,
+        "validate_pred_loss_epoch": 0.1340804398059845
+      },
+      {
+        "epoch": 8,
+        "validate_pred_loss_epoch": 0.48473700881004333
+      },
+      {
+        "epoch": 9,
+        "validate_pred_loss_epoch": 0.6125636100769043
+      },
+      {
+        "epoch": 10,
+        "validate_pred_loss_epoch": 0.2537558376789093
+      }
+    ]
+  }
+}

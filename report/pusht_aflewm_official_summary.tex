@@ -1,0 +1,164 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.8in]{geometry}
+\usepackage{fontspec}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\setmainfont{Georgia}
+\setsansfont{Segoe UI}
+\setmonofont{Consolas}
+
+\definecolor{ink}{HTML}{1F2937}
+\definecolor{accent}{HTML}{0F766E}
+\definecolor{accentlight}{HTML}{E6FFFB}
+\definecolor{muted}{HTML}{5B6470}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accent,
+  urlcolor=accent
+}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+
+\begin{document}
+\color{ink}
+
+{\sffamily
+\begin{center}
+  {\Large\bfseries AF-LeWM-lite on Official PushT}\\[0.4em]
+  {\large Matched-Compute Evaluation Summary}\\[0.5em]
+  {\small April 10, 2026}
+\end{center}
+}
+
+\vspace{0.3em}
+\fcolorbox{accent}{accentlight}{%
+  \parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{
+    \textbf{Bottom line.} On official PushT, the original AF-LeWM-lite v2 objective remains the only AF variant that beats baseline control under the matched-compute budget, but the margin is small. The first 50-episode comparison gives \textbf{3/50} successes for v2 versus \textbf{2/50} for baseline, and a second 50-episode evaluation seed reduces the aggregate to \textbf{5/100} versus \textbf{4/100}. Follow-up sweeps show that the dynamics nuisance adversary creates the control gain and also causes the main degradation in the shared JEPA objective.
+  }
+}
+
+\section*{Setup}
+The study uses the official \texttt{pusht\_expert\_train.h5} extracted from \texttt{pusht\_expert\_train.h5.zst}. The active file is \textbf{46.30 GB} with \textbf{2,336,736} cached PushT samples. All primary models and follow-up sweep variants were trained on the same RTX 4070 Laptop GPU with the same fixed budget:
+
+\begin{itemize}[leftmargin=1.2em, itemsep=0.2em, topsep=0.2em]
+  \item 10 epochs
+  \item 200 training batches per epoch
+  \item 20 validation batches per epoch
+  \item batch size 4
+  \item bf16 training
+  \item final 50-episode planning evaluation at epoch 10
+\end{itemize}
+
+This budget gives a fair relative comparison on the official dataset without turning the experiment into an impractically long full-data sweep.
+
+\section*{Results}
+\textbf{Primary matched-compute comparison}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Model & {Params (M)} & {Train (min)} & {Val pred} & {Core loss} & {Success (\%)} \\
+\midrule
+Baseline LeWM & 18.03 & 7.78 & 0.0035 & 0.1469 & 4.0 \\
+AF-LeWM-lite v1 & 18.17 & 12.51 & 0.0157 & 0.1649 & 2.0 \\
+AF-LeWM-lite v2 & 18.24 & 13.42 & 0.2538 & 0.4726 & 6.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The parameter differences are small. AF-LeWM-lite v1 adds \textbf{0.74\%} over baseline, and v2 adds \textbf{1.12\%}. The planning ranking therefore is not explained by a large capacity jump.
+
+The \textbf{core loss} is the shared JEPA objective,
+\[
+\mathcal{L}_{\mathrm{core}} = \mathcal{L}_{\mathrm{pred}} + 0.09\,\mathcal{L}_{\mathrm{sigreg}},
+\]
+which is directly comparable across baseline, v1, and v2. The larger \texttt{validate/loss\_epoch} used during v2 training is not comparable because it also includes the AF-specific nuisance regularizers.
+
+\textbf{Follow-up v2 sweep}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrl}
+\toprule
+Model & {Core loss} & {Success (\%)} & {Comment} \\
+\midrule
+Baseline LeWM & 0.1469 & 4.0 & reference \\
+AF-LeWM-lite v2 & 0.4726 & 6.0 & original best 50-episode control \\
+v2 no adversary & 0.1491 & 0.0 & removed dynamics nuisance adversary \\
+v2 soft & 0.3603 & 2.0 & reduced all auxiliary weights \\
+v2 GRL half & 0.3145 & 2.0 & kept weights, halved GRL lambda \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Second-seed check}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+Model & {Seed 42} & {Seed 43} & {Aggregate} \\
+\midrule
+Baseline LeWM & 2/50 & 2/50 & 4/100 = 4.0\% \\
+AF-LeWM-lite v2 & 3/50 & 2/50 & 5/100 = 5.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}[t]{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{pusht_success_rate.png}
+  \caption{Final planning success on the 50-episode evaluation.}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{pusht_val_pred_loss.png}
+  \caption{Validation prediction loss across the 10 training epochs.}
+\end{subfigure}
+\end{figure}
+
+\section*{Interpretation}
+\textbf{AF-LeWM-lite v1 is not a good stopping point.} The split plus invariance and independence losses alone degrade both latent prediction quality and planning success on official PushT. This matches the earlier concern that \texttt{app\_emb} lacked a strong positive job.
+
+\textbf{The dynamics nuisance adversary is the key mechanism.} Removing it restores the shared core loss almost exactly to baseline, then collapses control to \textbf{0/50}. Weakening the adversarial pressure also pulls the core loss back down and reduces success to \textbf{1/50}. That means the adversary is not incidental regularization. It is the main source of the current control gain.
+
+\textbf{The tradeoff is real and currently sharp.} Original v2 reaches the best control result while showing the worst shared core loss by a large margin. The follow-up sweep shows that static weight reduction does not solve this cleanly. Better shared modeling and better PushT control are still pulling in different directions under the current setup.
+
+\textbf{The control edge is fragile.} The second 50-episode evaluation seed reduces the primary comparison to \textbf{5/100} for v2 versus \textbf{4/100} for baseline. That keeps v2 slightly ahead and removes any basis for a strong robustness claim.
+
+\section*{Conclusion}
+The current conclusion is specific and actionable:
+
+\begin{itemize}[leftmargin=1.2em, itemsep=0.2em, topsep=0.2em]
+  \item Keep the \textbf{original AF-LeWM-lite v2} mechanism as the active branch.
+  \item Drop \textbf{AF-LeWM-lite v1} as a candidate baseline for future reporting.
+  \item Stop prioritizing static weight reduction. The follow-up sweep shows that weaker adversarial pressure improves the shared core loss and weakens control.
+  \item Run the next experiment on \textbf{adversary scheduling}: delayed onset or gradual ramp of the dynamics nuisance adversary.
+  \item Treat the current result as a \textbf{matched-compute PushT tradeoff study}, not a strong absolute PushT benchmark. All success rates remain low under this short budget.
+  \item Use \textbf{both} shared core loss and success rate in future comparisons. Success alone is too noisy at 50 episodes, and total training loss is not cross-model comparable once AF-specific regularizers are active.
+  \item Report multi-seed aggregates before claiming that AF-LeWM-lite improves PushT planning.
+\end{itemize}
+
+In one sentence: \textbf{the factorized-latent idea is still viable, the original v2 objective has a fragile control edge, and the highest-value next step is adversary schedule tuning rather than static loss reweighting or more model complexity.}
+
+\vfill
+{\small\color{muted}
+Artifacts generated in \texttt{report/}: \texttt{pusht\_official\_budget\_summary.csv}, \texttt{pusht\_official\_budget\_results.json}, \texttt{pusht\_v2\_followup\_summary.csv}, \texttt{pusht\_success\_rate.png}, and \texttt{pusht\_val\_pred\_loss.png}.
+}
+
+\end{document}

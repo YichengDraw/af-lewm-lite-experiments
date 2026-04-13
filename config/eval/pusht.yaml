@@ -45,4 +45,5 @@ eval:
           value: goal_state
           
 output:
+  save_video: False
   filename: pusht_results.txt

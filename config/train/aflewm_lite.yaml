@@ -2,7 +2,7 @@ defaults:
   - _self_
   - data: pusht
 
-output_model_name: lewm
+output_model_name: aflewm_lite
 subdir: runs/${data.dataset.name}/${output_model_name}
 
 num_workers: 0
@@ -62,3 +62,19 @@ loss:
     kwargs:
       knots: 17
       num_proj: 1024
+
+aflwm:
+  enabled: True
+  appearance_dim: 64
+  projector_hidden_dim: 512
+  stats_hidden_dim: 256
+  loss:
+    invariance_weight: 0.1
+    independence_weight: 0.05
+    stats_weight: 0.0
+  augment:
+    brightness: 0.25
+    contrast: 0.25
+    saturation: 0.15
+    grayscale_prob: 0.1
+    noise_std: 0.01

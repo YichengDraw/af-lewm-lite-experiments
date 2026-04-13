@@ -1,0 +1,7 @@
+model,shared_core_loss_epoch,success_rate_seed42,successes_seed42,total_eval_seed42,notes
+Baseline LeWM,0.1469495584,4.0,2,50,reference model
+AF-LeWM-lite v2,0.4726386416,6.0,3,50,original best 50-episode control
+AF-LeWM-lite v2 no adversary,0.1491075112,0.0,0,50,removed dynamics nuisance adversary
+AF-LeWM-lite v2 soft,0.3602943891,2.0,1,50,reduced all auxiliary weights
+AF-LeWM-lite v2 grl half,0.3144539720,2.0,1,50,kept weights and halved GRL lambda
+

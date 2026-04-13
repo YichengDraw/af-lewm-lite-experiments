@@ -1,127 +1,212 @@
+# AF-LeWM-lite Experiments
 
-# LeWorldModel
-### Stable End-to-End Joint-Embedding Predictive Architecture from Pixels
+AF-LeWM-lite is a LeWorldModel-derived JEPA variant that splits the latent into dynamics and appearance branches, keeps planning on the dynamics branch, and studies whether appearance shaping improves PushT control under matched training budgets.
 
-[Lucas Maes*](https://x.com/lucasmaes_), [Quentin Le Lidec*](https://quentinll.github.io/), [Damien Scieur](https://scholar.google.com/citations?user=hNscQzgAAAAJ&hl=fr), [Yann LeCun](https://yann.lecun.com/) and [Randall Balestriero](https://randallbalestriero.github.io/)
+This repository packages the experiment code, PushT-only study configs, report assets, and reproducible utilities used to evaluate:
 
-**Abstract:** Joint Embedding Predictive Architectures (JEPAs) offer a compelling framework for learning world models in compact latent spaces, yet existing methods remain fragile, relying on complex multi-term losses, exponential moving averages, pretrained encoders, or auxiliary supervision to avoid representation collapse. In this work, we introduce LeWorldModel (LeWM), the first JEPA that trains stably end-to-end from raw pixels using only two loss terms: a next-embedding prediction loss and a regularizer enforcing Gaussian-distributed latent embeddings. This reduces tunable loss hyperparameters from six to one compared to the only existing end-to-end alternative. With ~15M parameters trainable on a single GPU in a few hours, LeWM plans up to 48× faster than foundation-model-based world models while remaining competitive across diverse 2D and 3D control tasks. Beyond control, we show that LeWM's latent space encodes meaningful physical structure through probing of physical quantities. Surprise evaluation confirms that the model reliably detects physically implausible events.
+- Baseline LeWM
+- AF-LeWM-lite v1
+- AF-LeWM-lite v2
 
-<p align="center">
-   <b>[ <a href="https://arxiv.org/pdf/2603.19312v1">Paper</a> | <a href="https://drive.google.com/drive/folders/1r31os0d4-rR0mdHc7OlY_e5nh3XT4r4e?usp=sharing">Checkpoints</a> | <a href="https://huggingface.co/collections/quentinll/lewm">Data</a> | <a href="https://le-wm.github.io/">Website</a> ]</b>
-</p>
+The implementation is based on the public [LeWorldModel](https://github.com/lucas-maes/le-wm) release and keeps the original training and planning pipeline from `stable-worldmodel`.
 
-<br>
+## Highlights
 
-<p align="center">
-  <img src="assets/lewm.gif" width="80%">
-</p>
+- Factorized latent extension of LeWM with a dedicated appearance branch.
+- Two AF variants:
+  - `v1`: latent split + appearance invariance + independence penalty
+  - `v2`: `v1` plus sequence-consistent augmentations, stop-grad invariance, nuisance prediction, and a dynamics-side nuisance adversary
+- Official PushT study configs with a matched 10-epoch budget.
+- Included report PDF, source TeX, figures, and result tables.
 
-If you find this code useful, please reference it in your paper:
+## Visual Summary
+
+Primary PushT planning outcome across the matched 50-episode study:
+
+![PushT success rate](report/pusht_success_rate.png)
+
+Shared validation prediction loss across epochs for the main three models:
+
+![PushT validation prediction loss](report/pusht_val_pred_loss.png)
+
+## Repository Layout
+
+```text
+.
+|- train.py                         # Training entrypoint
+|- eval.py                          # Planning / policy evaluation entrypoint
+|- jepa.py                          # JEPA model with AF-LeWM-lite extensions
+|- run_all.py                       # Reproduction helper for status/train/eval
+|- validate_setup.py                # Local environment and dataset checks
+|- config/train/                    # Baseline, AF v1, AF v2 configs
+|- config/eval/                     # Evaluation configs
+|- tools/                           # Dataset download and report utilities
+`- report/                          # Final report, plots, CSV/JSON summaries
 ```
-@article{maes_lelidec2026lewm,
-  title={LeWorldModel: Stable End-to-End Joint-Embedding Predictive Architecture from Pixels},
-  author={Maes, Lucas and Le Lidec, Quentin and Scieur, Damien and LeCun, Yann and Balestriero, Randall},
-  journal={arXiv preprint},
-  year={2026}
-}
-```
 
-## Using the code
-This codebase builds on [stable-worldmodel](https://github.com/galilai-group/stable-worldmodel) for environment management, planning, and evaluation, and [stable-pretraining](https://github.com/galilai-group/stable-pretraining) for training. Together they reduce this repository to its core contribution: the model architecture and training objective.
+## Installation
 
-**Installation:**
+Python 3.10 is the expected runtime.
+
+### Option 1: `uv`
+
 ```bash
-uv venv --python=3.10
+uv venv --python 3.10
+uv pip install -r requirements.txt
+```
+
+### Option 2: `pip`
+
+```bash
+python -m venv .venv
 source .venv/bin/activate
-uv pip install stable-worldmodel[train,env]
+pip install -r requirements.txt
 ```
 
-## Data
+On Windows PowerShell, activate the environment with:
 
-Datasets use the HDF5 format for fast loading. Download the data from [HuggingFace](https://huggingface.co/collections/quentinll/lewm) and decompress with:
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+## Data Preparation
+
+The final study in this repository uses the official PushT dataset at:
+
+```text
+$STABLEWM_HOME/pusht_expert_train.h5
+```
+
+`STABLEWM_HOME` defaults to `~/.stable-wm`. Set it explicitly if you store data elsewhere:
 
 ```bash
-tar --zstd -xvf archive.tar.zst
+export STABLEWM_HOME=/path/to/cache
 ```
 
-Place the extracted `.h5` files under `$STABLEWM_HOME` (defaults to `~/.stable-wm/`). You can override this path:
-```bash
-export STABLEWM_HOME=/path/to/your/storage
+On Windows PowerShell:
+
+```powershell
+$env:STABLEWM_HOME = "D:\\stable-wm"
 ```
 
-Dataset names are specified without the `.h5` extension. For example, `config/train/data/pusht.yaml` references `pusht_expert_train`, which resolves to `$STABLEWM_HOME/pusht_expert_train.h5`.
+### Download the official PushT dataset
 
-## Training
+PowerShell helper:
 
-`jepa.py` contains the PyTorch implementation of LeWM. Training is configured via [Hydra](https://hydra.cc/) config files under `config/train/`.
-
-Before training, set your WandB `entity` and `project` in `config/train/lewm.yaml`:
-```yaml
-wandb:
-  config:
-    entity: your_entity
-    project: your_project
+```powershell
+.\tools\download_official_datasets.ps1
 ```
 
-To launch training:
-```bash
-python train.py data=pusht
-```
-
-Checkpoints are saved to `$STABLEWM_HOME` upon completion.
-
-For baseline scripts, see the stable-worldmodel [scripts](https://github.com/galilai-group/stable-worldmodel/tree/main/scripts/train) folder.
-
-## Planning
-
-Evaluation configs live under `config/eval/`. Set the `policy` field to the checkpoint path **relative to `$STABLEWM_HOME`**, without the `_object.ckpt` suffix:
+Then extract any downloaded archives:
 
 ```bash
-# ✓ correct
-python eval.py --config-name=pusht.yaml policy=pusht/lewm
-
-# ✗ incorrect
-python eval.py --config-name=pusht.yaml policy=pusht/lewm_object.ckpt
+python extract_datasets.py
 ```
 
-## Pretrained Checkpoints
+Verify the dataset and environment:
 
-Pre-trained checkpoints are available on [Google Drive](https://drive.google.com/drive/folders/1r31os0d4-rR0mdHc7OlY_e5nh3XT4r4e). Download the checkpoint archive and place the extracted files under `$STABLEWM_HOME/`.
-
-<div align="center">
-
-| Method | two-room | pusht | cube | reacher |
-|:---:|:---:|:---:|:---:|:---:|
-| pldm | ✓ | ✓ | ✓ | ✓ |
-| lejepa | ✓ | ✓ | ✓ | ✓ |
-| ivl | ✓ | ✓ | ✓ | — |
-| iql | ✓ | ✓ | ✓ | — |
-| gcbc | ✓ | ✓ | ✓ | — |
-| dinowm | ✓ | ✓ | — | — |
-| dinowm_noprop | ✓ | ✓ | ✓ | ✓ |
-
-</div>
-
-## Loading a checkpoint
-
-Each tar archive contains two files per checkpoint:
-- `<name>_object.ckpt` — a serialized Python object for convenient loading; this is what `eval.py` and the `stable_worldmodel` API use
-- `<name>_weight.ckpt` — a weights-only checkpoint (`state_dict`) for cases where you want to load weights into your own model instance
-
-To load the object checkpoint via the `stable_worldmodel` API:
-
-```python
-import stable_worldmodel as swm
-
-# Load the cost model (for MPC)
-cost = swm.policy.AutoCostModel('pusht/lewm')
+```bash
+python validate_setup.py
 ```
 
-This function accepts:
-- `run_name` — checkpoint path **relative to `$STABLEWM_HOME`**, without the `_object.ckpt` suffix
-- `cache_dir` — optional override for the checkpoint root (defaults to `$STABLEWM_HOME`)
+## Usage
 
-The returned module is in `eval` mode with its PyTorch weights accessible via `.state_dict()`.
+### Check status
 
-## Contact & Contributions
-Feel free to open [issues](https://github.com/lucas-maes/le-wm/issues)! For questions or collaborations, please contact `lucas.maes@mila.quebec`
+```bash
+python run_all.py --mode status --env pusht
+```
+
+### Train the baseline and AF variants
+
+```bash
+python train.py --config-name=lewm_pusht_official_budget
+python train.py --config-name=aflewm_pusht_official_budget
+python train.py --config-name=aflewm_pusht_v2_official_budget
+```
+
+### Evaluate a checkpoint on PushT
+
+Use checkpoint paths relative to `STABLEWM_HOME` and omit the `_object.ckpt` suffix:
+
+```bash
+python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/lewm_pusht_official_budget/lewm_pusht_official_budget_epoch_10
+python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/aflewm_pusht_official_budget/aflewm_pusht_official_budget_epoch_10
+python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/aflewm_pusht_v2_official_budget/aflewm_pusht_v2_official_budget_epoch_10
+```
+
+### Regenerate report assets
+
+```bash
+python tools/generate_pusht_official_report_assets.py
+```
+
+To rebuild the main PDF report:
+
+```bash
+xelatex -interaction=nonstopmode -halt-on-error -output-directory=report report/pusht_aflewm_official_summary.tex
+xelatex -interaction=nonstopmode -halt-on-error -output-directory=report report/pusht_aflewm_official_summary.tex
+```
+
+## AF-LeWM-lite Design
+
+### AF-LeWM-lite v1
+
+- Split the learned latent into a planning latent `emb` and an appearance latent `app_emb`.
+- Keep the predictor and planner attached only to `emb`.
+- Add appearance-only augmentations and an invariance loss on `emb`.
+- Add a cross-covariance independence penalty between `emb` and `app_emb`.
+
+### AF-LeWM-lite v2
+
+- Keep the `v1` factorized latent.
+- Make appearance augmentations consistent across time within a sequence.
+- Use stop-grad asymmetry for the appearance invariance loss.
+- Train `app_emb` to predict nuisance parameters sampled from the augmentations.
+- Add a gradient-reversal nuisance head on `emb` to reduce nuisance leakage into the planning branch.
+
+## Results
+
+### Primary matched-compute PushT study
+
+10 epochs, 200 train batches per epoch, 20 validation batches per epoch, batch size 4, bf16, official PushT dataset.
+
+| Model | Params | Shared core loss | Success rate |
+| --- | ---: | ---: | ---: |
+| Baseline LeWM | 18.03M | 0.14695 | 4.0% (2/50) |
+| AF-LeWM-lite v1 | 18.17M | 0.16486 | 2.0% (1/50) |
+| AF-LeWM-lite v2 | 18.24M | 0.47264 | 6.0% (3/50) |
+
+Shared core loss is `pred_loss + 0.09 * sigreg_loss`, which is the fairest loss comparison across baseline, `v1`, and `v2`.
+
+### Follow-up `v2` sweep
+
+| Variant | Shared core loss | Success rate | Note |
+| --- | ---: | ---: | --- |
+| Baseline LeWM | 0.14695 | 4.0% (2/50) | Reference model |
+| AF-LeWM-lite v2 | 0.47264 | 6.0% (3/50) | Strongest single-seed control |
+| AF-LeWM-lite v2 no adversary | 0.14911 | 0.0% (0/50) | Removed dynamics nuisance adversary |
+| AF-LeWM-lite v2 soft | 0.36029 | 2.0% (1/50) | Reduced all auxiliary weights |
+| AF-LeWM-lite v2 grl half | 0.31445 | 2.0% (1/50) | Halved GRL lambda |
+
+### Current conclusion
+
+- `v2` keeps a slight control edge over the baseline on official PushT.
+- The edge is fragile: the 100-episode aggregate is `5/100` for `v2` versus `4/100` for the baseline.
+- The dynamics nuisance adversary is the main mechanism behind that edge.
+- The next high-value experiment is adversary scheduling, especially delayed onset or ramped strength during training.
+
+See the full report for details:
+
+- [Main PushT report](report/pusht_aflewm_official_summary.pdf)
+- [Follow-up addendum](report/pusht_v2_followup_addendum.pdf)
+
+## Notes
+
+- The repository keeps the LeWM-compatible training and planning interface intact.
+- Final conclusions in this repository are limited to official PushT experiments.
+- The current `v2` result supports a small control tradeoff and does not support a strong robustness claim yet.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

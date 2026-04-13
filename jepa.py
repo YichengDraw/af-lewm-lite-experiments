@@ -17,6 +17,10 @@ class JEPA(nn.Module):
         action_encoder,
         projector=None,
         pred_proj=None,
+        appearance_projector=None,
+        appearance_head=None,
+        appearance_nuisance_head=None,
+        dynamics_nuisance_head=None,
     ):
         super().__init__()
 
@@ -25,19 +29,88 @@ class JEPA(nn.Module):
         self.action_encoder = action_encoder
         self.projector = projector or nn.Identity()
         self.pred_proj = pred_proj or nn.Identity()
+        self.appearance_projector = appearance_projector
+        self.appearance_head = appearance_head
+        self.appearance_nuisance_head = appearance_nuisance_head
+        self.dynamics_nuisance_head = dynamics_nuisance_head
+
+    def encode_pixels(self, pixels):
+        """Encode pixel observations into backbone features."""
+
+        pixels = pixels.float()
+        b = pixels.size(0)
+        pixels = rearrange(pixels, "b t ... -> (b t) ...")
+        output = self.encoder(pixels, interpolate_pos_encoding=True)
+        pixels_emb = output.last_hidden_state[:, 0]
+        return rearrange(pixels_emb, "(b t) d -> b t d", b=b)
+
+    def project_features(self, encoder_emb):
+        """Project backbone features into planning and appearance latents."""
+
+        b = encoder_emb.size(0)
+        flat_emb = rearrange(encoder_emb, "b t d -> (b t) d")
+        dyn_emb = self.projector(flat_emb)
+
+        output = {
+            "encoder_emb": encoder_emb,
+            "emb": rearrange(dyn_emb, "(b t) d -> b t d", b=b),
+        }
+
+        appearance_projector = getattr(self, "appearance_projector", None)
+        if appearance_projector is not None:
+            app_emb = appearance_projector(flat_emb)
+            output["app_emb"] = rearrange(app_emb, "(b t) d -> b t d", b=b)
+
+            appearance_head = getattr(self, "appearance_head", None)
+            if appearance_head is not None:
+                app_stats = appearance_head(app_emb)
+                output["app_stats_pred"] = rearrange(app_stats, "(b t) d -> b t d", b=b)
+
+        return output
+
+    def predict_appearance_stats(self, app_emb):
+        """Predict coarse image appearance statistics from the appearance latent."""
+
+        appearance_head = getattr(self, "appearance_head", None)
+        if appearance_head is None:
+            raise RuntimeError("appearance_head is not defined on this JEPA instance")
+
+        b = app_emb.size(0)
+        flat_emb = rearrange(app_emb, "b t d -> (b t) d")
+        pred = appearance_head(flat_emb)
+        return rearrange(pred, "(b t) d -> b t d", b=b)
+
+    def predict_appearance_nuisance(self, app_emb):
+        """Predict sampled appearance nuisance parameters from the appearance latent."""
+
+        nuisance_head = getattr(self, "appearance_nuisance_head", None)
+        if nuisance_head is None:
+            raise RuntimeError("appearance_nuisance_head is not defined on this JEPA instance")
+
+        b = app_emb.size(0)
+        flat_emb = rearrange(app_emb, "b t d -> (b t) d")
+        pred = nuisance_head(flat_emb)
+        return rearrange(pred, "(b t) d -> b t d", b=b)
+
+    def predict_dynamics_nuisance(self, emb):
+        """Predict nuisance parameters from the dynamics latent."""
+
+        nuisance_head = getattr(self, "dynamics_nuisance_head", None)
+        if nuisance_head is None:
+            raise RuntimeError("dynamics_nuisance_head is not defined on this JEPA instance")
+
+        b = emb.size(0)
+        flat_emb = rearrange(emb, "b t d -> (b t) d")
+        pred = nuisance_head(flat_emb)
+        return rearrange(pred, "(b t) d -> b t d", b=b)
 
     def encode(self, info):
         """Encode observations and actions into embeddings.
         info: dict with pixels and action keys
         """
 
-        pixels = info['pixels'].float()
-        b = pixels.size(0)
-        pixels = rearrange(pixels, "b t ... -> (b t) ...") # flatten for encoding
-        output = self.encoder(pixels, interpolate_pos_encoding=True)
-        pixels_emb = output.last_hidden_state[:, 0]  # cls token
-        emb = self.projector(pixels_emb)
-        info["emb"] = rearrange(emb, "(b t) d -> b t d", b=b)
+        encoder_emb = self.encode_pixels(info["pixels"])
+        info.update(self.project_features(encoder_emb))
 
         if "action" in info:
             info["act_emb"] = self.action_encoder(info["action"])
