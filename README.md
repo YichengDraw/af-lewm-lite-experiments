@@ -1,62 +1,58 @@
-# AF-LeWM-lite Experiments
+# AF-LeWM-lite PushT Experiments
 
-AF-LeWM-lite is a LeWorldModel-derived JEPA variant that splits the latent into dynamics and appearance branches, keeps planning on the dynamics branch, and studies whether appearance shaping improves PushT control under matched training budgets.
+This repository is a compact, reliability-checked PushT study for AF-LeWM-lite, a LeWM-style JEPA world model with an appearance-shaping branch.
 
-This repository packages the experiment code, PushT-only study configs, report assets, and reproducible utilities used to evaluate:
+The repo now focuses on one experiment family:
 
-- Baseline LeWM
-- AF-LeWM-lite v1
-- AF-LeWM-lite v2
+- `Baseline LeWM`
+- `AF-LeWM-lite v1`: shared encoder, dynamics projection, appearance projection, invariance loss, independence penalty
+- `AF-LeWM-lite v2`: v1 plus sequence-consistent nuisance shaping and a dynamics-side gradient-reversal nuisance head
 
-The implementation is based on the public [LeWorldModel](https://github.com/lucas-maes/le-wm) release and keeps the original training and planning pipeline from `stable-worldmodel`.
+Planning uses only the dynamics latent. The appearance branch is a training-time shaping signal.
 
-## Highlights
+## Model Pipeline
 
-- Factorized latent extension of LeWM with a dedicated appearance branch.
-- Two AF variants:
-  - `v1`: latent split + appearance invariance + independence penalty
-  - `v2`: `v1` plus sequence-consistent augmentations, stop-grad invariance, nuisance prediction, and a dynamics-side nuisance adversary
-- Official PushT study configs with a matched 10-epoch budget.
-- Corrected evaluation pipeline with real history reconstruction, goal-step alignment, result overwrite, and auxiliary BatchNorm freezing.
-- Included report PDF, source TeX, figures, and result tables.
+![AF-LeWM-lite model pipeline](report/aflewm_model_pipeline.png)
 
-## Visual Summary
+The diagram source is tracked at `report/diagrams/aflewm_model_pipeline.mmd`.
 
-Two-seed aggregate PushT planning outcome across the corrected study:
+## Reliable Experiment Flow
 
-![PushT success rate](report/pusht_success_rate.png)
+![Reliable PushT experiment flow](report/pusht_experiment_flow.png)
 
-Shared validation core loss across epochs for the main three models:
+The diagram source is tracked at `report/diagrams/pusht_experiment_flow.mmd`.
 
-![PushT validation core loss](report/pusht_val_core_loss.png)
+## What Was Fixed
+
+![Implementation fix map](report/implementation_fix_map.png)
+
+The reliable rerun is designed to avoid these experiment-validity failures:
+
+- clip-level train/validation leakage from overlapping HDF5 windows
+- full-dataset normalization leakage
+- accidental continuation from stale checkpoints
+- CEM planning over normalized actions outside valid environment bounds
+- weak provenance for sampled evaluation rows and report inputs
 
 ## Repository Layout
 
 ```text
 .
-|- train.py                         # Training entrypoint
-|- eval.py                          # Planning / policy evaluation entrypoint
-|- jepa.py                          # JEPA model with AF-LeWM-lite extensions
-|- run_all.py                       # Reproduction helper for status/train/eval
-|- validate_setup.py                # Local environment and dataset checks
-|- config/train/                    # Baseline, AF v1, AF v2 configs
-|- config/eval/                     # Evaluation configs
-|- tools/                           # Dataset download and report utilities
-`- report/                          # Final report, plots, CSV/JSON summaries
+|- train.py                         # PushT training entrypoint
+|- eval.py                          # PushT CEM planning evaluation
+|- jepa.py                          # JEPA model with AF-LeWM-lite heads
+|- module.py                        # Predictor, MLP, SIGReg helpers
+|- run_all.py                       # PushT status/train/eval helper
+|- validate_setup.py                # Environment, dataset, checkpoint validation
+|- config/train/                    # Three matched PushT training configs
+|- config/eval/                     # PushT evaluation config and CEM solver config
+|- tools/                           # Dataset download and report generation
+`- report/                          # PDF, TeX, diagrams, plots, CSV/JSON summary
 ```
 
 ## Installation
 
 Python 3.10 is the expected runtime.
-
-### Option 1: `uv`
-
-```bash
-uv venv --python 3.10
-uv pip install -r requirements.txt
-```
-
-### Option 2: `pip`
 
 ```bash
 python -m venv .venv
@@ -64,145 +60,95 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-On Windows PowerShell, activate the environment with:
+On Windows PowerShell:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
 
-## Data Preparation
+## Data
 
-The final study in this repository uses the official PushT dataset at:
+The study uses the official PushT dataset:
 
 ```text
 $STABLEWM_HOME/pusht_expert_train.h5
 ```
 
-`STABLEWM_HOME` defaults to `~/.stable-wm`. Set it explicitly if you store data elsewhere:
+`STABLEWM_HOME` defaults to `~/.stable-wm`.
 
-```bash
-export STABLEWM_HOME=/path/to/cache
-```
-
-On Windows PowerShell:
-
-```powershell
-$env:STABLEWM_HOME = "D:\\stable-wm"
-```
-
-### Download the official PushT dataset
-
-PowerShell helper:
+Download and extract:
 
 ```powershell
 .\tools\download_official_datasets.ps1
-```
-
-Then extract any downloaded archives:
-
-```bash
 python extract_datasets.py
 ```
 
-Verify the dataset and environment:
+Validate the local setup:
 
 ```bash
 python validate_setup.py
-```
-
-## Usage
-
-### Check status
-
-```bash
 python run_all.py --mode status --env pusht
 ```
 
-### Train the baseline and AF variants
+## Run
+
+Train all three matched PushT models:
 
 ```bash
-python train.py --config-name=lewm_pusht_official_budget output_model_name=lewm_pusht_implfix_budget
-python train.py --config-name=aflewm_pusht_official_budget output_model_name=aflewm_pusht_implfix_budget_rerun
-python train.py --config-name=aflewm_pusht_v2_official_budget output_model_name=aflewm_pusht_v2_implfix_budget_rerun
+python run_all.py --mode train --env pusht
 ```
 
-### Evaluate a checkpoint on PushT
-
-Use checkpoint paths relative to `STABLEWM_HOME` and omit the `_object.ckpt` suffix:
+Evaluate each epoch-10 checkpoint on two 50-start seeds:
 
 ```bash
-python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/lewm_pusht_implfix_budget/lewm_pusht_implfix_budget_epoch_10
-python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/aflewm_pusht_implfix_budget_rerun/aflewm_pusht_implfix_budget_rerun_epoch_10
-python eval.py --config-name=pusht.yaml policy=runs/pusht_expert_train/aflewm_pusht_v2_implfix_budget_rerun/aflewm_pusht_v2_implfix_budget_rerun_epoch_10
+python run_all.py --mode eval --env pusht
 ```
 
-Second evaluation seed:
+The reliable run names are:
 
-```bash
-python eval.py --config-name=pusht.yaml seed=43 policy=runs/pusht_expert_train/lewm_pusht_implfix_budget/lewm_pusht_implfix_budget_epoch_10 output.filename=pusht_results_seed43.txt
+```text
+lewm_pusht_reliable
+aflewm_pusht_v1_reliable
+aflewm_pusht_v2_reliable
 ```
 
-### Regenerate report assets
+## Current Reliable Result
+
+The April 22, 2026 rerun uses two 50-start evaluation seeds per model.
+
+| Model | Seed 42 | Seed 43 | Aggregate | Wilson 95% CI |
+| --- | ---: | ---: | ---: | ---: |
+| Baseline LeWM | 2/50 | 1/50 | 3/100 = 3.0% | [1.03%, 8.45%] |
+| AF-LeWM-lite v1 | 2/50 | 3/50 | 5/100 = 5.0% | [2.15%, 11.18%] |
+| AF-LeWM-lite v2 | 1/50 | 2/50 | 3/100 = 3.0% | [1.03%, 8.45%] |
+
+The evidence supports a reliability-checked exploratory ranking. The success counts are small and the intervals overlap.
+
+## Report
+
+Regenerate JSON, CSV, plots, diagrams, and the LaTeX source:
 
 ```bash
 python tools/generate_pusht_official_report_assets.py
 ```
 
-To rebuild the main PDF report:
+Build the PDF:
 
 ```bash
 xelatex -interaction=nonstopmode -halt-on-error -output-directory=report report/pusht_aflewm_official_summary.tex
 xelatex -interaction=nonstopmode -halt-on-error -output-directory=report report/pusht_aflewm_official_summary.tex
 ```
 
-## AF-LeWM-lite Design
+Primary report artifacts:
 
-### AF-LeWM-lite v1
-
-- Split the learned latent into a planning latent `emb` and an appearance latent `app_emb`.
-- Keep the predictor and planner attached only to `emb`.
-- Add appearance-only augmentations and an invariance loss on `emb`.
-- Add a cross-covariance independence penalty between `emb` and `app_emb`.
-
-### AF-LeWM-lite v2
-
-- Keep the `v1` factorized latent.
-- Make appearance augmentations consistent across time within a sequence.
-- Use stop-grad asymmetry for the appearance invariance loss.
-- Train `app_emb` to predict nuisance parameters sampled from the augmentations.
-- Add a gradient-reversal nuisance head on `emb` to reduce nuisance leakage into the planning branch.
-
-## Results
-
-### Primary matched-compute PushT study
-
-10 epochs, 200 train batches per epoch, 20 validation batches per epoch, batch size 4, bf16, official PushT dataset, and two 50-episode evaluation seeds.
-
-| Model | Params | Shared core loss | Seed 42 | Seed 43 | Aggregate |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Baseline LeWM | 18.03M | 0.14796 | 0/50 | 1/50 | 1/100 = 1.0% |
-| AF-LeWM-lite v1 | 18.17M | 0.14963 | 2/50 | 2/50 | 4/100 = 4.0% |
-| AF-LeWM-lite v2 | 18.24M | 0.15181 | 0/50 | 2/50 | 2/100 = 2.0% |
-
-Shared core loss is `pred_loss + 0.09 * sigreg_loss`, which is the fairest loss comparison across baseline, `v1`, and `v2`.
-
-### Current conclusion
-
-- The corrected pipeline changes the earlier ranking. `v1` now has the best aggregate success rate, `v2` is second, and baseline is third.
-- The effect size is small. The two-seed totals are `4/100` for `v1`, `2/100` for `v2`, and `1/100` for baseline.
-- The confidence intervals overlap strongly, so the current result supports only a weak relative ordering.
-- Baseline still has the best shared JEPA objective. Both AF variants trade predictive quality for a small and uncertain control gain.
-
-See the full report for details:
-
-- [Main PushT report](report/pusht_aflewm_official_summary.pdf)
-
-## Notes
-
-- The repository keeps the LeWM-compatible training and planning interface intact.
-- Final conclusions in this repository are limited to official PushT experiments after the April 13, 2026 implementation fixes.
-- The current study supports a small exploratory edge for `v1` and does not support a strong robustness claim for any AF variant yet.
+- `report/pusht_aflewm_official_summary.pdf`
+- `report/pusht_aflewm_official_summary.tex`
+- `report/pusht_official_budget_results.json`
+- `report/pusht_official_budget_summary.csv`
+- `report/pusht_success_rate.png`
+- `report/pusht_val_core_loss.png`
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See `LICENSE`.

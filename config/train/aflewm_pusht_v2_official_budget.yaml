@@ -2,7 +2,7 @@ defaults:
   - _self_
   - data: pusht
 
-output_model_name: aflewm_pusht_v2_official_budget
+output_model_name: aflewm_pusht_v2_reliable
 subdir: runs/${data.dataset.name}/${output_model_name}
 
 num_workers: 0
@@ -12,12 +12,15 @@ img_size: 224
 patch_size: 14
 encoder_scale: tiny
 dump_object: True
+resume: False
 
 trainer:
   max_epochs: 10
   devices: 1
   accelerator: gpu
   precision: bf16
+  deterministic: True
+  benchmark: False
   gradient_clip_val: 1.0
   limit_train_batches: 200
   limit_val_batches: 20

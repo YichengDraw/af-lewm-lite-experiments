@@ -1,233 +1,387 @@
 {
+  "schema_version": 2,
+  "generated_at": "2026-04-21T18:51:24.871754+00:00",
+  "source_mode": "live",
+  "git_commit": "9a0b814e16928434eb194a1c2bb4c3c971aaa4b3",
+  "git_worktree": {
+    "dirty": true,
+    "status_entry_count": 39
+  },
+  "stablewm_home": "C:\\Users\\yiche\\.stable-wm",
+  "warnings": [],
   "summary": [
     {
       "model": "Baseline LeWM",
       "slug": "baseline",
+      "run_name": "lewm_pusht_reliable",
+      "source_mode": "live",
       "params": 18034478,
-      "train_elapsed_seconds": 477.7,
-      "evaluation_time_seed42_seconds": 944.5896461009979,
-      "evaluation_time_seed43_seconds": 861.7343287467957,
-      "evaluation_time_mean_seconds": 903.1619874238968,
-      "success_seed42_percent": 0.0,
+      "train_elapsed_seconds": 581.6178553104401,
+      "evaluation_time_seed42_seconds": 837.0233483314514,
+      "evaluation_time_seed43_seconds": 833.4519484043121,
+      "evaluation_time_mean_seconds": 835.2376483678818,
+      "success_seed42_count": 2,
+      "success_seed42_total": 50,
+      "success_seed43_count": 1,
+      "success_seed43_total": 50,
+      "success_seed42_percent": 4.0,
       "success_seed43_percent": 2.0,
-      "aggregate_successes": 1,
+      "aggregate_successes": 3,
       "aggregate_episodes": 100,
-      "aggregate_success_percent": 1.0,
-      "aggregate_wilson95_low_percent": 0.17673865655472645,
-      "aggregate_wilson95_high_percent": 5.4487524760934605,
-      "validate_loss_epoch": 0.14790001511573792,
-      "validate_pred_loss_epoch": 0.004980088211596012,
-      "validate_sigreg_loss_epoch": 1.5886719226837158,
-      "shared_core_loss_epoch": 0.14796056125313042,
+      "aggregate_success_percent": 3.0,
+      "aggregate_wilson95_low_percent": 1.0254338223414816,
+      "aggregate_wilson95_high_percent": 8.452078080402698,
+      "validate_loss_epoch": 0.1474267691373825,
+      "validate_pred_loss_epoch": 0.003872071858495474,
+      "validate_sigreg_loss_epoch": 1.59375,
+      "shared_core_loss_epoch": 0.14730957185849547,
       "validate_appearance_inv_loss_epoch": null,
       "validate_appearance_indep_loss_epoch": null,
       "validate_appearance_nuisance_loss_epoch": null,
-      "validate_dynamics_nuisance_loss_epoch": null
+      "validate_dynamics_nuisance_loss_epoch": null,
+      "train_episode_count": 16816,
+      "val_episode_count": 1869,
+      "train_sample_count": 1782250,
+      "val_sample_count": 199471,
+      "source_files": [
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\lewm_pusht_reliable\\metrics\\metrics.csv",
+          "exists": true,
+          "bytes": 7913,
+          "mtime": "2026-04-21T16:35:55.254206+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\lewm_pusht_reliable\\train_metadata.json",
+          "exists": true,
+          "bytes": 243,
+          "mtime": "2026-04-21T16:35:55.762144+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\lewm_pusht_reliable\\split_metadata.json",
+          "exists": true,
+          "bytes": 213433,
+          "mtime": "2026-04-21T16:26:14.036958+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\lewm_pusht_reliable\\config.yaml",
+          "exists": true,
+          "bytes": 1402,
+          "mtime": "2026-04-21T16:26:14.019684+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\lewm_pusht_reliable\\pusht_results.txt",
+          "exists": true,
+          "bytes": 2501,
+          "mtime": "2026-04-21T17:26:22.654680+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\lewm_pusht_reliable\\pusht_results_seed43.txt",
+          "exists": true,
+          "bytes": 2492,
+          "mtime": "2026-04-21T17:41:41.637086+00:00"
+        }
+      ]
     },
     {
       "model": "AF-LeWM-lite v1",
       "slug": "af_v1",
+      "run_name": "aflewm_pusht_v1_reliable",
+      "source_mode": "live",
       "params": 18167150,
-      "train_elapsed_seconds": 900.3,
-      "evaluation_time_seed42_seconds": 907.5126707553864,
-      "evaluation_time_seed43_seconds": 863.8623707294464,
-      "evaluation_time_mean_seconds": 885.6875207424164,
+      "train_elapsed_seconds": 797.8979539871216,
+      "evaluation_time_seed42_seconds": 844.3651111125946,
+      "evaluation_time_seed43_seconds": 839.1754837036133,
+      "evaluation_time_mean_seconds": 841.7702974081039,
+      "success_seed42_count": 2,
+      "success_seed42_total": 50,
+      "success_seed43_count": 3,
+      "success_seed43_total": 50,
       "success_seed42_percent": 4.0,
-      "success_seed43_percent": 4.0,
-      "aggregate_successes": 4,
+      "success_seed43_percent": 6.0,
+      "aggregate_successes": 5,
       "aggregate_episodes": 100,
-      "aggregate_success_percent": 4.0,
-      "aggregate_wilson95_low_percent": 1.5663050551848017,
-      "aggregate_wilson95_high_percent": 9.837217232607372,
-      "validate_loss_epoch": 0.15034602582454681,
-      "validate_pred_loss_epoch": 0.006683575455099344,
-      "validate_sigreg_loss_epoch": 1.588281273841858,
-      "shared_core_loss_epoch": 0.14962889010086655,
-      "validate_appearance_inv_loss_epoch": 0.0079135587438941,
-      "validate_appearance_indep_loss_epoch": 2.607410398702825e-10,
+      "aggregate_success_percent": 5.0,
+      "aggregate_wilson95_low_percent": 2.154336145631356,
+      "aggregate_wilson95_high_percent": 11.175196527208817,
+      "validate_loss_epoch": 0.15099380910396576,
+      "validate_pred_loss_epoch": 0.007522585801780224,
+      "validate_sigreg_loss_epoch": 1.5867187976837158,
+      "shared_core_loss_epoch": 0.15032727759331463,
+      "validate_appearance_inv_loss_epoch": null,
+      "validate_appearance_indep_loss_epoch": null,
       "validate_appearance_nuisance_loss_epoch": null,
-      "validate_dynamics_nuisance_loss_epoch": null
+      "validate_dynamics_nuisance_loss_epoch": null,
+      "train_episode_count": 16816,
+      "val_episode_count": 1869,
+      "train_sample_count": 1782250,
+      "val_sample_count": 199471,
+      "source_files": [
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v1_reliable\\metrics\\metrics.csv",
+          "exists": true,
+          "bytes": 13961,
+          "mtime": "2026-04-21T16:50:00.755944+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v1_reliable\\train_metadata.json",
+          "exists": true,
+          "bytes": 248,
+          "mtime": "2026-04-21T16:50:01.041832+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v1_reliable\\split_metadata.json",
+          "exists": true,
+          "bytes": 213433,
+          "mtime": "2026-04-21T16:36:43.048283+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v1_reliable\\config.yaml",
+          "exists": true,
+          "bytes": 1721,
+          "mtime": "2026-04-21T16:36:43.032288+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v1_reliable\\pusht_results.txt",
+          "exists": true,
+          "bytes": 2511,
+          "mtime": "2026-04-21T17:57:13.048131+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v1_reliable\\pusht_results_seed43.txt",
+          "exists": true,
+          "bytes": 2502,
+          "mtime": "2026-04-21T18:12:37.025371+00:00"
+        }
+      ]
     },
     {
       "model": "AF-LeWM-lite v2",
       "slug": "af_v2",
+      "run_name": "aflewm_pusht_v2_reliable",
+      "source_mode": "live",
       "params": 18236792,
-      "train_elapsed_seconds": 987.9,
-      "evaluation_time_seed42_seconds": 887.1142935752869,
-      "evaluation_time_seed43_seconds": 874.5097751617432,
-      "evaluation_time_mean_seconds": 880.812034368515,
-      "success_seed42_percent": 0.0,
+      "train_elapsed_seconds": 841.4617068767548,
+      "evaluation_time_seed42_seconds": 841.1923508644104,
+      "evaluation_time_seed43_seconds": 843.5897977352142,
+      "evaluation_time_mean_seconds": 842.3910742998123,
+      "success_seed42_count": 1,
+      "success_seed42_total": 50,
+      "success_seed43_count": 2,
+      "success_seed43_total": 50,
+      "success_seed42_percent": 2.0,
       "success_seed43_percent": 4.0,
-      "aggregate_successes": 2,
+      "aggregate_successes": 3,
       "aggregate_episodes": 100,
-      "aggregate_success_percent": 2.0,
-      "aggregate_wilson95_low_percent": 0.5501852234968179,
-      "aggregate_wilson95_high_percent": 7.001316294199366,
-      "validate_loss_epoch": 0.20298552513122559,
-      "validate_pred_loss_epoch": 0.010168509557843208,
-      "validate_sigreg_loss_epoch": 1.573828101158142,
-      "shared_core_loss_epoch": 0.151813038662076,
-      "validate_appearance_inv_loss_epoch": 0.008224631659686565,
-      "validate_appearance_indep_loss_epoch": 7.345042907225263e-10,
-      "validate_appearance_nuisance_loss_epoch": 0.19594421982765198,
-      "validate_dynamics_nuisance_loss_epoch": 0.6159708499908447
+      "aggregate_success_percent": 3.0,
+      "aggregate_wilson95_low_percent": 1.0254338223414816,
+      "aggregate_wilson95_high_percent": 8.452078080402698,
+      "validate_loss_epoch": 0.20455041527748108,
+      "validate_pred_loss_epoch": 0.009116739965975285,
+      "validate_sigreg_loss_epoch": 1.5808594226837158,
+      "shared_core_loss_epoch": 0.1513940880075097,
+      "validate_appearance_inv_loss_epoch": null,
+      "validate_appearance_indep_loss_epoch": null,
+      "validate_appearance_nuisance_loss_epoch": null,
+      "validate_dynamics_nuisance_loss_epoch": null,
+      "train_episode_count": 16816,
+      "val_episode_count": 1869,
+      "train_sample_count": 1782250,
+      "val_sample_count": 199471,
+      "source_files": [
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v2_reliable\\metrics\\metrics.csv",
+          "exists": true,
+          "bytes": 19108,
+          "mtime": "2026-04-21T17:04:46.986059+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v2_reliable\\train_metadata.json",
+          "exists": true,
+          "bytes": 248,
+          "mtime": "2026-04-21T17:04:47.293747+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v2_reliable\\split_metadata.json",
+          "exists": true,
+          "bytes": 213433,
+          "mtime": "2026-04-21T16:50:45.757344+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v2_reliable\\config.yaml",
+          "exists": true,
+          "bytes": 1908,
+          "mtime": "2026-04-21T16:50:45.742001+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v2_reliable\\pusht_results.txt",
+          "exists": true,
+          "bytes": 2511,
+          "mtime": "2026-04-21T18:28:01.567927+00:00"
+        },
+        {
+          "path": "C:\\Users\\yiche\\.stable-wm\\runs\\pusht_expert_train\\aflewm_pusht_v2_reliable\\pusht_results_seed43.txt",
+          "exists": true,
+          "bytes": 2502,
+          "mtime": "2026-04-21T18:43:31.917124+00:00"
+        }
+      ]
     }
   ],
   "curves": {
     "Baseline LeWM": [
       {
         "epoch": 1,
-        "validate_pred_loss_epoch": 1.0301792621612549,
-        "shared_core_loss_epoch": 1.3820230078697204
+        "validate_pred_loss_epoch": 1.1522648334503174,
+        "shared_core_loss_epoch": 1.5132492256164551
       },
       {
         "epoch": 2,
-        "validate_pred_loss_epoch": 0.6137756109237671,
-        "shared_core_loss_epoch": 0.9044474816322327
+        "validate_pred_loss_epoch": 0.6725977063179016,
+        "shared_core_loss_epoch": 0.972550835609436
       },
       {
         "epoch": 3,
-        "validate_pred_loss_epoch": 0.5514300465583801,
-        "shared_core_loss_epoch": 0.8309925508499145
+        "validate_pred_loss_epoch": 0.5014556646347046,
+        "shared_core_loss_epoch": 0.764494731426239
       },
       {
         "epoch": 4,
-        "validate_pred_loss_epoch": 0.38529378175735474,
-        "shared_core_loss_epoch": 0.6256922149658203
+        "validate_pred_loss_epoch": 0.32567623257637024,
+        "shared_core_loss_epoch": 0.5502543532848359
       },
       {
         "epoch": 5,
-        "validate_pred_loss_epoch": 0.2493731677532196,
-        "shared_core_loss_epoch": 0.4546856677532196
+        "validate_pred_loss_epoch": 0.21008026599884033,
+        "shared_core_loss_epoch": 0.4074474620819092
       },
       {
         "epoch": 6,
-        "validate_pred_loss_epoch": 0.10552344471216202,
-        "shared_core_loss_epoch": 0.27659375935792924
+        "validate_pred_loss_epoch": 0.09348438680171967,
+        "shared_core_loss_epoch": 0.2587539201974869
       },
       {
         "epoch": 7,
-        "validate_pred_loss_epoch": 0.03769855946302414,
-        "shared_core_loss_epoch": 0.1891516801714897
+        "validate_pred_loss_epoch": 0.04237887263298035,
+        "shared_core_loss_epoch": 0.19548434138298035
       },
       {
         "epoch": 8,
-        "validate_pred_loss_epoch": 0.012045699171721935,
-        "shared_core_loss_epoch": 0.15748710971325636
+        "validate_pred_loss_epoch": 0.012296698987483978,
+        "shared_core_loss_epoch": 0.15763263434171676
       },
       {
         "epoch": 9,
-        "validate_pred_loss_epoch": 0.005789839196950197,
-        "shared_core_loss_epoch": 0.1492273391969502
+        "validate_pred_loss_epoch": 0.005189927760511637,
+        "shared_core_loss_epoch": 0.14869774455204607
       },
       {
         "epoch": 10,
-        "validate_pred_loss_epoch": 0.004980088211596012,
-        "shared_core_loss_epoch": 0.14796056125313042
+        "validate_pred_loss_epoch": 0.003872071858495474,
+        "shared_core_loss_epoch": 0.14730957185849547
       }
     ],
     "AF-LeWM-lite v1": [
       {
         "epoch": 1,
-        "validate_pred_loss_epoch": 4.750698089599609,
-        "shared_core_loss_epoch": 5.458604331016541
+        "validate_pred_loss_epoch": 4.289393424987793,
+        "shared_core_loss_epoch": 4.971565308570861
       },
       {
         "epoch": 2,
-        "validate_pred_loss_epoch": 4.167323112487793,
-        "shared_core_loss_epoch": 4.837401237487793
+        "validate_pred_loss_epoch": 3.9008986949920654,
+        "shared_core_loss_epoch": 4.570836186408997
       },
       {
         "epoch": 3,
-        "validate_pred_loss_epoch": 3.83683705329895,
-        "shared_core_loss_epoch": 4.4896183204650875
+        "validate_pred_loss_epoch": 4.1030778884887695,
+        "shared_core_loss_epoch": 4.778499746322632
       },
       {
         "epoch": 4,
-        "validate_pred_loss_epoch": 3.646836042404175,
-        "shared_core_loss_epoch": 4.285414175987244
+        "validate_pred_loss_epoch": 3.9016151428222656,
+        "shared_core_loss_epoch": 4.565646409988403
       },
       {
         "epoch": 5,
-        "validate_pred_loss_epoch": 3.242885112762451,
-        "shared_core_loss_epoch": 3.861635112762451
+        "validate_pred_loss_epoch": 3.2327919006347656,
+        "shared_core_loss_epoch": 3.842963767051697
       },
       {
         "epoch": 6,
-        "validate_pred_loss_epoch": 2.5809683799743652,
-        "shared_core_loss_epoch": 3.145577754974365
+        "validate_pred_loss_epoch": 2.6588034629821777,
+        "shared_core_loss_epoch": 3.228194079399109
       },
       {
         "epoch": 7,
-        "validate_pred_loss_epoch": 1.8867162466049194,
-        "shared_core_loss_epoch": 2.3811537551879884
+        "validate_pred_loss_epoch": 2.1541502475738525,
+        "shared_core_loss_epoch": 2.6694002389907836
       },
       {
         "epoch": 8,
-        "validate_pred_loss_epoch": 1.2419239282608032,
-        "shared_core_loss_epoch": 1.6480489110946654
+        "validate_pred_loss_epoch": 1.3352124691009521,
+        "shared_core_loss_epoch": 1.7535718441009522
       },
       {
         "epoch": 9,
-        "validate_pred_loss_epoch": 0.555208683013916,
-        "shared_core_loss_epoch": 0.8363180494308471
+        "validate_pred_loss_epoch": 0.5484049320220947,
+        "shared_core_loss_epoch": 0.8280377531051636
       },
       {
         "epoch": 10,
-        "validate_pred_loss_epoch": 0.006683575455099344,
-        "shared_core_loss_epoch": 0.14962889010086655
+        "validate_pred_loss_epoch": 0.007522585801780224,
+        "shared_core_loss_epoch": 0.15032727759331463
       }
     ],
     "AF-LeWM-lite v2": [
       {
         "epoch": 1,
-        "validate_pred_loss_epoch": 86.60315704345703,
-        "shared_core_loss_epoch": 87.82096954345702
+        "validate_pred_loss_epoch": 128.17318725585938,
+        "shared_core_loss_epoch": 129.41884348869323
       },
       {
         "epoch": 2,
-        "validate_pred_loss_epoch": 72.27657318115234,
-        "shared_core_loss_epoch": 73.4758231639862
+        "validate_pred_loss_epoch": 66.56436157226562,
+        "shared_core_loss_epoch": 67.75489278793334
       },
       {
         "epoch": 3,
-        "validate_pred_loss_epoch": 32.37260437011719,
-        "shared_core_loss_epoch": 33.47904185295105
+        "validate_pred_loss_epoch": 71.59962463378906,
+        "shared_core_loss_epoch": 72.79971841812134
       },
       {
         "epoch": 4,
-        "validate_pred_loss_epoch": 27.6846923828125,
-        "shared_core_loss_epoch": 28.761598615646363
+        "validate_pred_loss_epoch": 15.170370101928711,
+        "shared_core_loss_epoch": 16.14940136909485
       },
       {
         "epoch": 5,
-        "validate_pred_loss_epoch": 11.917774200439453,
-        "shared_core_loss_epoch": 12.839711666107178
+        "validate_pred_loss_epoch": 12.728848457336426,
+        "shared_core_loss_epoch": 13.6730047416687
       },
       {
         "epoch": 6,
-        "validate_pred_loss_epoch": 2.4435677528381348,
-        "shared_core_loss_epoch": 3.0005833864212037
+        "validate_pred_loss_epoch": 4.357364654541016,
+        "shared_core_loss_epoch": 5.053880262374878
       },
       {
         "epoch": 7,
-        "validate_pred_loss_epoch": 2.076296329498291,
-        "shared_core_loss_epoch": 2.5876088380813598
+        "validate_pred_loss_epoch": 1.7976642847061157,
+        "shared_core_loss_epoch": 2.2749455261230467
       },
       {
         "epoch": 8,
-        "validate_pred_loss_epoch": 1.152180790901184,
-        "shared_core_loss_epoch": 1.543118290901184
+        "validate_pred_loss_epoch": 0.5845543146133423,
+        "shared_core_loss_epoch": 0.8686871314048767
       },
       {
         "epoch": 9,
-        "validate_pred_loss_epoch": 0.4160779118537903,
-        "shared_core_loss_epoch": 0.6637888407707214
+        "validate_pred_loss_epoch": 0.24170377850532532,
+        "shared_core_loss_epoch": 0.4464537870883941
       },
       {
         "epoch": 10,
-        "validate_pred_loss_epoch": 0.010168509557843208,
-        "shared_core_loss_epoch": 0.151813038662076
+        "validate_pred_loss_epoch": 0.009116739965975285,
+        "shared_core_loss_epoch": 0.1513940880075097
       }
     ]
   }

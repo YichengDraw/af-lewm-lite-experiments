@@ -1,0 +1,15 @@
+flowchart LR
+  A["Official PushT sequence<br/>pixels / action / proprio / state"] --> B["Image preprocessing<br/>ImageNet norm + 224 resize"]
+  B --> C["ViT-tiny encoder<br/>CLS features"]
+  C --> D["Dynamics projector<br/>emb"]
+  A --> E["Action block encoder<br/>5 raw actions -> one block"]
+  D --> F["AR predictor<br/>3 history latents + action blocks"]
+  E --> F
+  F --> G["Predicted future emb"]
+  G --> H["CEM planner<br/>terminal latent goal cost"]
+  H --> I["Env action<br/>inverse normalize + clip"]
+  C --> J["Appearance projector<br/>app_emb"]
+  J --> K["AF v1 shaping losses<br/>invariance + independence"]
+  J --> L["AF v2 nuisance losses<br/>appearance head + GRL head"]
+  K --> M["Training objective only"]
+  L --> M

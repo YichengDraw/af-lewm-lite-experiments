@@ -10,6 +10,17 @@ def detach_clone(v):
     return v.detach().clone() if torch.is_tensor(v) else v
 
 
+def select_goal_pixels(goal):
+    """Return a single goal frame sequence with shape (B, 1, C, H, W)."""
+    if goal.ndim == 4:
+        return goal.unsqueeze(1)
+    if goal.ndim == 5:
+        return goal[:, -1:]
+    if goal.ndim == 6:
+        return goal[:, 0, -1:]
+    raise ValueError(f"Unsupported goal tensor shape: {tuple(goal.shape)}")
+
+
 def infer_history_size_from_predictor(predictor, default: int = 1) -> int:
     pos_embedding = getattr(predictor, "pos_embedding", None)
     if pos_embedding is None:
@@ -131,6 +142,10 @@ class JEPA(nn.Module):
         emb: (B, T, D)
         act_emb: (B, T, A_emb)
         """
+        if emb.shape[:2] != act_emb.shape[:2]:
+            raise ValueError(
+                f"Embedding/action context length mismatch: {emb.shape[:2]} vs {act_emb.shape[:2]}"
+            )
         preds = self.predictor(emb, act_emb)
         preds = self.pred_proj(rearrange(preds, "b t d -> (b t) d"))
         preds = rearrange(preds, "(b t) d -> b t d", b=emb.size(0))
@@ -154,8 +169,24 @@ class JEPA(nn.Module):
         pixels = info["pixels"]
         if pixels.ndim == 5:
             pixels = pixels.unsqueeze(1).expand(B, S, -1, -1, -1, -1)
+        elif pixels.ndim == 6:
+            if pixels.size(0) != B:
+                raise ValueError(
+                    f"Pixel batch size {pixels.size(0)} does not match action batch size {B}"
+                )
+            if pixels.size(1) == 1 and S > 1:
+                pixels = pixels.expand(B, S, -1, -1, -1, -1)
+            elif pixels.size(1) != S:
+                raise ValueError(
+                    f"Pixel sample count {pixels.size(1)} does not match action sample count {S}"
+                )
+        else:
+            raise ValueError(f"Unsupported pixel tensor shape: {tuple(pixels.shape)}")
 
-        history_size = min(history_size, pixels.size(2))
+        if pixels.size(2) < history_size:
+            raise ValueError(
+                f"Need {history_size} history frames, got {pixels.size(2)}"
+            )
         HS = history_size
 
         # copy and encode initial info dict
@@ -180,18 +211,28 @@ class JEPA(nn.Module):
         else:
             if past_actions.ndim == 3:
                 past_actions = past_actions.unsqueeze(1).expand(B, S, -1, -1)
+            elif past_actions.ndim == 4:
+                if past_actions.size(1) == 1 and S > 1:
+                    past_actions = past_actions.expand(B, S, -1, -1)
+                elif past_actions.size(1) != S:
+                    raise ValueError(
+                        f"Past action sample count {past_actions.size(1)} does not match action sample count {S}"
+                    )
+            else:
+                raise ValueError(
+                    f"Unsupported past action tensor shape: {tuple(past_actions.shape)}"
+                )
             past_actions = rearrange(past_actions, "b s ... -> (b s) ...")
 
         prefix_len = max(HS - 1, 0)
         if prefix_len > 0:
             if past_actions.size(1) < prefix_len:
-                pad = future_actions.new_zeros(
-                    future_actions.size(0),
-                    prefix_len - past_actions.size(1),
-                    future_actions.size(-1),
+                raise ValueError(
+                    f"Need {prefix_len} past action blocks, got {past_actions.size(1)}"
                 )
-                past_actions = torch.cat([pad, past_actions], dim=1)
             past_actions = past_actions[:, -prefix_len:]
+        elif past_actions.size(1) > 0:
+            past_actions = past_actions[:, :0]
 
         # rollout predictor autoregressively for each future action block
         for t in range(T):
@@ -237,22 +278,31 @@ class JEPA(nn.Module):
 
     def get_cost(self, info_dict: dict, action_candidates: torch.Tensor):
         """ Compute the cost of action candidates given an info dict with goal and initial state."""
+        was_training = self.training
+        self.eval()
+        try:
+            with torch.no_grad():
+                return self._get_cost(info_dict, action_candidates)
+        finally:
+            self.train(was_training)
 
+    def _get_cost(self, info_dict: dict, action_candidates: torch.Tensor):
         assert "goal" in info_dict, "goal not in info_dict"
 
         device = next(self.parameters()).device
         for k in list(info_dict.keys()):
             if torch.is_tensor(info_dict[k]):
                 info_dict[k] = info_dict[k].to(device)
+        action_candidates = action_candidates.to(device)
 
-        goal_pixels = info_dict["goal"][:, 0]
-        if goal_pixels.ndim == 4:
-            goal_pixels = goal_pixels.unsqueeze(1)
-        elif goal_pixels.ndim >= 5:
-            goal_pixels = goal_pixels[:, -1:]
+        goal_pixels = select_goal_pixels(info_dict["goal"])
         goal = self.encode({"pixels": goal_pixels})
 
-        info_dict["goal_emb"] = goal["emb"]
+        info_dict["goal_emb"] = goal["emb"].unsqueeze(1).expand(
+            -1,
+            action_candidates.shape[1],
+            *([-1] * (goal["emb"].ndim - 1)),
+        )
         history_size = infer_history_size_from_predictor(self.predictor)
         info_dict = self.rollout(
             info_dict, action_candidates, history_size=history_size

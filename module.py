@@ -26,9 +26,12 @@ class SIGReg(torch.nn.Module):
         """
         proj: (T, B, D)
         """
+        proj = proj.float()
         # sample random projections
-        A = torch.randn(proj.size(-1), self.num_proj, device=proj.device)
-        A = A.div_(A.norm(p=2, dim=0))
+        A = torch.randn(
+            proj.size(-1), self.num_proj, device=proj.device, dtype=proj.dtype
+        )
+        A = F.normalize(A, p=2, dim=0, eps=1e-12)
         # compute the epps-pulley statistic
         x_t = (proj @ A).unsqueeze(-1) * self.t
         err = (x_t.cos().mean(-3) - self.phi).square() + x_t.sin().mean(-3).square()
@@ -278,6 +281,10 @@ class ARPredictor(nn.Module):
         x: (B, T, d)
         c: (B, T, act_dim)
         """
+        if x.shape[:2] != c.shape[:2]:
+            raise ValueError(
+                f"Predictor input/action context length mismatch: {x.shape[:2]} vs {c.shape[:2]}"
+            )
         T = x.size(1)
         x = x + self.pos_embedding[:, :T]
         x = self.dropout(x)

@@ -1,6 +1,8 @@
 import os
 import signal
 import sys
+import json
+import time
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
@@ -24,7 +26,7 @@ import stable_pretraining as spt
 import stable_worldmodel as swm
 import torch
 import torch.nn.functional as F
-from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.loggers import CSVLogger, WandbLogger
 from omegaconf import OmegaConf, open_dict
 
 from jepa import JEPA
@@ -141,6 +143,34 @@ def _cross_covariance_loss(x, y):
     return cov.square().mean()
 
 
+def _episode_split(dataset, train_fraction: float, seed: int) -> tuple[list[int], list[int]]:
+    num_episodes = len(dataset.lengths)
+    if num_episodes < 2:
+        raise ValueError("Episode-disjoint split requires at least two episodes")
+    if not 0.0 < float(train_fraction) < 1.0:
+        raise ValueError(f"train_split must be between 0 and 1, got {train_fraction}")
+
+    generator = torch.Generator().manual_seed(int(seed))
+    perm = torch.randperm(num_episodes, generator=generator).tolist()
+    num_train = int(num_episodes * float(train_fraction))
+    num_train = max(1, min(num_episodes - 1, num_train))
+    train_episodes = sorted(int(idx) for idx in perm[:num_train])
+    val_episodes = sorted(int(idx) for idx in perm[num_train:])
+    return train_episodes, val_episodes
+
+
+def _clip_indices_for_episodes(dataset, episode_indices: list[int]) -> list[int]:
+    episode_set = set(int(idx) for idx in episode_indices)
+    indices = [
+        sample_idx
+        for sample_idx, (episode_idx, _) in enumerate(dataset.clip_indices)
+        if int(episode_idx) in episode_set
+    ]
+    if not indices:
+        raise ValueError("Episode split produced an empty sample subset")
+    return indices
+
+
 @contextmanager
 def _freeze_batchnorm_stats(module):
     batchnorm_states = []
@@ -245,16 +275,28 @@ def lejepa_forward(self, batch, stage, cfg):
     output["loss"] = loss
 
     losses_dict = {f"{stage}/{k}": v.detach() for k, v in output.items() if "loss" in k}
-    self.log_dict(losses_dict, on_step=True, sync_dist=True)
+    self.log_dict(
+        losses_dict,
+        on_step=(stage in ("train", "fit")),
+        on_epoch=True,
+        sync_dist=True,
+        batch_size=batch["pixels"].size(0),
+    )
     return output
 
-@hydra.main(version_base=None, config_path="./config/train", config_name="lewm")
+@hydra.main(version_base=None, config_path="./config/train", config_name="lewm_pusht_official_budget")
 def run(cfg):
+    pl.seed_everything(int(cfg.seed), workers=True)
+
     #########################
     ##       dataset       ##
     #########################
 
     dataset = swm.data.HDF5Dataset(**cfg.data.dataset, transform=None)
+    train_episodes, val_episodes = _episode_split(dataset, cfg.train_split, int(cfg.seed))
+    train_indices = _clip_indices_for_episodes(dataset, train_episodes)
+    val_indices = _clip_indices_for_episodes(dataset, val_episodes)
+
     transforms = [get_img_preprocessor(source='pixels', target='pixels', img_size=cfg.img_size)]
     
     with open_dict(cfg):
@@ -262,7 +304,7 @@ def run(cfg):
             if col.startswith("pixels"):
                 continue
 
-            normalizer = get_column_normalizer(dataset, col, col)
+            normalizer = get_column_normalizer(dataset, col, col, episode_indices=train_episodes)
             transforms.append(normalizer)
 
             setattr(cfg.wm, f"{col}_dim", dataset.get_dim(col))
@@ -270,12 +312,11 @@ def run(cfg):
     transform = spt.data.transforms.Compose(*transforms)
     dataset.transform = transform
 
-    rnd_gen = torch.Generator().manual_seed(cfg.seed)
-    train_set, val_set = spt.data.random_split(
-        dataset, lengths=[cfg.train_split, 1 - cfg.train_split], generator=rnd_gen
-    )
+    train_set = torch.utils.data.Subset(dataset, train_indices)
+    val_set = torch.utils.data.Subset(dataset, val_indices)
 
-    train = torch.utils.data.DataLoader(train_set, **cfg.loader,shuffle=True, drop_last=True, generator=rnd_gen)
+    loader_gen = torch.Generator().manual_seed(int(cfg.seed) + 1)
+    train = torch.utils.data.DataLoader(train_set, **cfg.loader, shuffle=True, drop_last=True, generator=loader_gen)
     val = torch.utils.data.DataLoader(val_set, **cfg.loader, shuffle=False, drop_last=False)
     
     ##############################
@@ -363,6 +404,7 @@ def run(cfg):
         appearance_nuisance_head=appearance_nuisance_head,
         dynamics_nuisance_head=dynamics_nuisance_head,
     )
+    total_params = sum(p.numel() for p in world_model.parameters())
 
     optimizers = {
         'model_opt': {
@@ -387,36 +429,107 @@ def run(cfg):
 
     run_id = cfg.get("subdir") or ""
     run_dir = Path(swm.data.utils.get_cache_dir(), run_id)
+    resume_enabled = bool(cfg.get("resume", False))
+    weights_ckpt_path = run_dir / f"{cfg.output_model_name}_weights.ckpt"
+    final_object_path = (
+        run_dir
+        / f"{cfg.output_model_name}_epoch_{int(cfg.trainer.max_epochs)}_object.ckpt"
+    )
+    existing_artifacts = [
+        path
+        for path in [
+            weights_ckpt_path,
+            final_object_path,
+            run_dir / "metrics" / "metrics.csv",
+            run_dir / "train_metadata.json",
+            run_dir / "split_metadata.json",
+        ]
+        if path.exists()
+    ]
+    existing_artifacts.extend(run_dir.glob(f"{cfg.output_model_name}_epoch_*_object.ckpt"))
+    if not resume_enabled and existing_artifacts:
+        raise RuntimeError(
+            "Refusing to mix a fresh reliable run with existing artifacts. "
+            f"Use a new output_model_name/subdir or set resume=True. Existing: {existing_artifacts}"
+        )
+    if resume_enabled and not weights_ckpt_path.exists():
+        raise RuntimeError(f"resume=True but checkpoint does not exist: {weights_ckpt_path}")
 
     logger = None
     if cfg.wandb.enabled:
         logger = WandbLogger(**cfg.wandb.config)
         logger.log_hyperparams(OmegaConf.to_container(cfg))
+    else:
+        logger = CSVLogger(save_dir=str(run_dir), name="metrics", version="")
 
     run_dir.mkdir(parents=True, exist_ok=True)
     with open(run_dir / "config.yaml", "w") as f:
         OmegaConf.save(cfg, f)
+    split_metadata = {
+        "split": "episode_disjoint",
+        "seed": int(cfg.seed),
+        "train_split": float(cfg.train_split),
+        "num_episodes": len(dataset.lengths),
+        "train_episode_count": len(train_episodes),
+        "val_episode_count": len(val_episodes),
+        "train_sample_count": len(train_indices),
+        "val_sample_count": len(val_indices),
+        "normalizer_episode_scope": "train",
+        "train_episodes": train_episodes,
+        "val_episodes": val_episodes,
+    }
+    with open(run_dir / "split_metadata.json", "w") as f:
+        json.dump(split_metadata, f, indent=2)
 
-    object_dump_callback = ModelObjectCallBack(
-        dirpath=run_dir, filename=cfg.output_model_name, epoch_interval=1,
-    )
+    callbacks = []
+    if cfg.get("dump_object", True):
+        callbacks.append(
+            ModelObjectCallBack(
+                dirpath=run_dir,
+                filename=cfg.output_model_name,
+                epoch_interval=int(cfg.trainer.max_epochs) + 1,
+            )
+        )
 
     trainer = pl.Trainer(
         **cfg.trainer,
-        callbacks=[object_dump_callback],
+        callbacks=callbacks,
         num_sanity_val_steps=1,
         logger=logger,
-        enable_checkpointing=True,
+        enable_checkpointing=resume_enabled,
     )
 
     manager = spt.Manager(
         trainer=trainer,
         module=world_model,
         data=data_module,
-        ckpt_path=run_dir / f"{cfg.output_model_name}_weights.ckpt",
+        ckpt_path=weights_ckpt_path if resume_enabled else None,
+        seed=int(cfg.seed),
     )
 
+    train_start_time = time.time()
     manager()
+    train_elapsed_seconds = time.time() - train_start_time
+    with open(run_dir / "train_metadata.json", "w") as f:
+        json.dump(
+            {
+                "output_model_name": str(cfg.output_model_name),
+                "seed": int(cfg.seed),
+                "max_epochs": int(cfg.trainer.max_epochs),
+                "limit_train_batches": int(cfg.trainer.limit_train_batches),
+                "limit_val_batches": int(cfg.trainer.limit_val_batches),
+                "batch_size": int(cfg.loader.batch_size),
+                "model_params": int(total_params),
+                "train_elapsed_seconds": train_elapsed_seconds,
+            },
+            f,
+            indent=2,
+        )
+    if cfg.get("dump_object", True):
+        if not final_object_path.exists():
+            raise RuntimeError(
+                f"Expected final object checkpoint was not written: {final_object_path}"
+            )
     return
 
 

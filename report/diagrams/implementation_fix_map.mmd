@@ -1,0 +1,6 @@
+flowchart LR
+  A["Prior risk: clip-level split leakage"] --> B["Episode-disjoint train/val split"]
+  C["Prior risk: full-data normalizer"] --> D["Normalizer fitted on train episodes"]
+  E["Prior risk: stale checkpoint resume"] --> F["Fresh-run fail-fast unless resume=True"]
+  G["Prior risk: invalid CEM candidates"] --> H["Bound normalized candidates and elites"]
+  I["Prior risk: weak result provenance"] --> J["Store split/train/eval source metadata"]

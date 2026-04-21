@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 
-\usepackage[margin=0.8in]{geometry}
+\usepackage[margin=0.78in]{geometry}
 \usepackage{fontspec}
 \usepackage{microtype}
 \usepackage{booktabs}
@@ -27,60 +27,66 @@
 
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{0.6em}
+\setlength{\parskip}{0.52em}
 
 \begin{document}
 \color{ink}
 
 {\sffamily
 \begin{center}
-  {\Large\bfseries AF-LeWM-lite on Official PushT}\\[0.4em]
-  {\large Corrected Two-Seed Evaluation Summary}\\[0.5em]
-  {\small April 13, 2026}
+  {\Large\bfseries AF-LeWM-lite on Official PushT}\\[0.35em]
+  {\large Reliable Rerun Summary}\\[0.45em]
+  {\small April 22, 2026}
 \end{center}
 }
 
-\vspace{0.3em}
+\vspace{0.2em}
 \fcolorbox{accent}{accentlight}{%
   \parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{
-    \textbf{Bottom line.} After fixing the evaluation and training issues, all three models remain weak on the short official PushT budget. The corrected two-seed aggregate gives \textbf{4/100} successes for AF-LeWM-lite v1, \textbf{2/100} for AF-LeWM-lite v2, and \textbf{1/100} for baseline LeWM. The confidence intervals overlap, so the current evidence supports only a small, low-confidence edge for v1. The earlier claim that v2 was the best PushT variant is not supported by the corrected pipeline.
+    \textbf{Bottom line.} The reliable rerun reports \textbf{5/100} successes for \textbf{AF-LeWM-lite v1}. All models remain weak under the short matched budget, and the Wilson intervals overlap, so the current evidence supports an exploratory ranking rather than a benchmark-level claim.
   }
 }
 
+\section*{Architecture and Design Principle}
+AF-LeWM-lite keeps the LeWM planning contract intact. Pixels are encoded by a shared ViT-tiny backbone; the dynamics projection head produces \texttt{emb}, action blocks are encoded separately, and the autoregressive predictor rolls the dynamics latent forward under candidate actions. Planning uses terminal latent distance between predicted dynamics and the goal dynamics latent.
+
+The AF extension adds an appearance projection head \texttt{app\_emb} used only for representation shaping during training. v1 adds dynamics invariance under appearance augmentation and a cross-covariance penalty between \texttt{emb} and \texttt{app\_emb}. v2 adds sequence-consistent augmentation parameters, stop-gradient invariance, an appearance nuisance head, and a gradient-reversal nuisance head on the dynamics branch.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{aflewm_model_pipeline.png}
+\caption{Model pipeline. The planner sees only the dynamics branch; appearance heads affect training losses.}
+\end{figure}
+
+\section*{Reliable Experiment Protocol}
+The rerun uses the official \texttt{pusht\_expert\_train.h5} dataset, an episode-disjoint 90/10 train/validation split, normalizers fitted only on training episodes, and fresh-run guards that refuse to mix stale checkpoint or metrics artifacts with a new run. Each model is trained for 10 epochs with 200 training batches per epoch, 20 validation batches per epoch, batch size 4, bf16 precision, and seed 3072.
+
+Each epoch-10 object checkpoint is evaluated on two independent 50-start samples, \texttt{seed=42} and \texttt{seed=43}. The report aggregates 100 trials per model and reports Wilson 95\% intervals. Cross-model loss comparisons use the shared JEPA core objective \(\mathcal{L}_{core} = \mathcal{L}_{pred} + 0.09\mathcal{L}_{sigreg}\).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\linewidth]{pusht_experiment_flow.png}
+\caption{Experiment flow from official dataset to two-seed aggregate report.}
+\end{figure}
+
 \section*{Implementation Fixes}
-The rerun used a corrected pipeline in both training and evaluation:
-
-\begin{itemize}[leftmargin=1.2em, itemsep=0.2em, topsep=0.2em]
-  \item \texttt{JEPA.rollout} now keeps the real past action blocks in context and appends candidate future blocks one step at a time. The previous logic could overwrite history slots with future candidate actions.
-  \item \texttt{eval.py} now reconstructs the raw dataset history window and compresses it into the model-scale history expected by the predictor. The previous path evaluated multi-frame models with an effectively broken history signal.
-  \item Goal indexing now includes the true goal frame, and valid start-step sampling no longer drops the final valid index.
-  \item Evaluation result files are overwritten, not appended, and the report parser reads the latest metric entry.
-  \item AF auxiliary passes now freeze projector BatchNorm statistics during augmented forwards so the main dynamics branch does not receive augmentation-induced BN drift.
+\begin{itemize}[leftmargin=1.2em, itemsep=0.16em, topsep=0.16em]
+  \item Training now uses episode-disjoint subsets rather than overlapping clip-level random split.
+  \item Action, proprioception, and state normalizers are fitted on training episodes only.
+  \item Fresh reliable runs fail fast when old metrics or checkpoints already exist.
+  \item Evaluation reconstructs the raw 15-step history window and compresses it to the model's 3-frame context.
+  \item Goal indexing is asserted against the planned raw-step horizon.
+  \item CEM candidate actions, elite means, and returned normalized plans are clamped to normalized env action bounds before inverse transform.
+  \item Evaluation writes row, episode, and start-step provenance for every sampled rollout.
 \end{itemize}
 
-These fixes were exercised by rerunning the formal training jobs and all reported evaluations.
-
-\section*{Setup}
-The study uses the official \texttt{pusht\_expert\_train.h5} with \textbf{2,336,736} cached samples. All three primary models were trained on the same RTX 4070 Laptop GPU under the same short budget:
-
-\begin{itemize}[leftmargin=1.2em, itemsep=0.2em, topsep=0.2em]
-  \item 10 epochs
-  \item 200 training batches per epoch
-  \item 20 validation batches per epoch
-  \item batch size 4
-  \item bf16 training
-  \item 50-episode planning evaluation at epoch 10
-  \item second 50-episode evaluation with \texttt{seed=43}
-\end{itemize}
-
-The fair cross-model loss is the shared JEPA objective
-\[
-\mathcal{L}_{\mathrm{core}} = \mathcal{L}_{\mathrm{pred}} + 0.09\,\mathcal{L}_{\mathrm{sigreg}}.
-\]
-\texttt{validate/loss\_epoch} is not directly comparable once AF-specific nuisance losses are active, especially for v2.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{implementation_fix_map.png}
+\caption{Reliability fixes that directly affect whether the experiment tests the intended design.}
+\end{figure}
 
 \section*{Results}
-\textbf{Primary comparison}
 \begin{table}[h]
 \centering
 \small
@@ -88,18 +94,13 @@ The fair cross-model loss is the shared JEPA objective
 \toprule
 Model & Params (M) & Train (min) & Core loss & Seed 42 & Seed 43 & Aggregate \\
 \midrule
-Baseline LeWM & 18.03 & 7.96 & 0.14796 & 0/50 & 1/50 & 1/100 = 1.0\% \\
-AF-LeWM-lite v1 & 18.17 & 15.00 & 0.14963 & 2/50 & 2/50 & 4/100 = 4.0\% \\
-AF-LeWM-lite v2 & 18.24 & 16.47 & 0.15181 & 0/50 & 2/50 & 2/100 = 2.0\% \\
+Baseline LeWM & 18.03 & 9.69 & 0.14731 & 2/50 & 1/50 & 3/100 = 3.0\% \\
+AF-LeWM-lite v1 & 18.17 & 13.30 & 0.15033 & 2/50 & 3/50 & 5/100 = 5.0\% \\
+AF-LeWM-lite v2 & 18.24 & 14.02 & 0.15139 & 1/50 & 2/50 & 3/100 = 3.0\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The parameter differences remain small. AF-LeWM-lite v1 adds \textbf{0.74\%} parameters over baseline, and v2 adds \textbf{1.12\%}. The ranking therefore is not explained by a meaningful capacity jump.
-
-The final total validation losses were \textbf{0.14790} for baseline, \textbf{0.15035} for v1, and \textbf{0.20299} for v2. The large v2 increase is expected because its total objective includes nuisance prediction and dynamics nuisance losses on top of the shared JEPA objective.
-
-\textbf{Two-seed uncertainty}
 \begin{table}[h]
 \centering
 \small
@@ -107,57 +108,36 @@ The final total validation losses were \textbf{0.14790} for baseline, \textbf{0.
 \toprule
 Model & Aggregate success & Wilson 95\% CI \\
 \midrule
-Baseline LeWM & 1/100 = 1.0\% & [0.18\%, 5.45\%] \\
-AF-LeWM-lite v1 & 4/100 = 4.0\% & [1.57\%, 9.84\%] \\
-AF-LeWM-lite v2 & 2/100 = 2.0\% & [0.55\%, 7.00\%] \\
+Baseline LeWM & 3/100 = 3.0\% & [1.03\%, 8.45\%] \\
+AF-LeWM-lite v1 & 5/100 = 5.0\% & [2.15\%, 11.18\%] \\
+AF-LeWM-lite v2 & 3/100 = 3.0\% & [1.03\%, 8.45\%] \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-The intervals overlap heavily. The current study supports a weak relative ordering under this budget, and it does not support a strong robustness or disentangling claim.
 
 \begin{figure}[h]
 \centering
 \begin{subfigure}[t]{0.48\linewidth}
   \centering
   \includegraphics[width=\linewidth]{pusht_success_rate.png}
-  \caption{Two-seed aggregate planning success with Wilson 95\% intervals.}
+  \caption{Two-seed planning success with Wilson intervals.}
 \end{subfigure}
 \hfill
 \begin{subfigure}[t]{0.48\linewidth}
   \centering
   \includegraphics[width=\linewidth]{pusht_val_core_loss.png}
-  \caption{Shared core loss across the 10 training epochs.}
+  \caption{Shared JEPA core loss across training epochs.}
 \end{subfigure}
 \end{figure}
 
 \section*{Interpretation}
-\textbf{The corrected pipeline changes the conclusion.} The old report overstated v2. After the history, goal-step, result-writing, and auxiliary BatchNorm fixes, v2 no longer has the best aggregate PushT result.
+The corrected result should be read conservatively. The best model in this rerun is \textbf{AF-LeWM-lite v1}, but the aggregate success counts are small and the intervals overlap. The current study is useful as a reliability-checked ablation of the AF shaping idea; it does not establish a strong PushT control result.
 
-\textbf{v1 is the most credible current variant.} It is the only AF model that improved planning success on both evaluation seeds. The gain is small, but it is also the most consistent signal in the corrected study.
-
-\textbf{Both AF variants worsen the shared JEPA objective.} Baseline still gives the best core loss, v1 is slightly worse, and v2 is worse again. The current factorization does not improve representation learning quality on the shared predictive objective.
-
-\textbf{v2 adds complexity without a reliable control gain.} Its extra nuisance heads and adversarial branch increase training time and degrade the fair loss comparison, while the two-seed control result remains weaker than v1.
-
-\textbf{The remaining weakness is methodological, not an implementation artifact.} The corrected code was exercised through formal reruns of all three training jobs and six 50-episode evaluations. Success rates remain low after those fixes, so the current budgeted setup is genuinely weak on official PushT.
-
-\section*{Conclusion}
-The corrected recommendation is straightforward:
-
-\begin{itemize}[leftmargin=1.2em, itemsep=0.2em, topsep=0.2em]
-  \item Treat \textbf{AF-LeWM-lite v1} as the current best branch under the short PushT budget.
-  \item Stop using the earlier single-seed v2 result as evidence that the nuisance-adversarial extension is superior.
-  \item Compare models with \textbf{shared core loss} and \textbf{multi-seed success aggregates}. Total training loss is not a fair cross-model metric once AF-specific losses are active.
-  \item Use the next round for a stronger positive appearance objective or a different training schedule, not for larger v2 complexity on the same short budget.
-  \item Report the current result as a \textbf{small exploratory gain with high uncertainty}, not as a benchmark win.
-\end{itemize}
-
-In one sentence: \textbf{after implementation fixes and full reruns, AF-LeWM-lite v1 is the best current variant on official PushT, but all three models remain far too weak for a strong claim.}
+The most important conclusion is methodological: after removing split leakage, full-data normalization, stale checkpoint continuation, and invalid CEM candidate actions, any remaining weakness is visible in the audited protocol rather than hidden in the implementation.
 
 \vfill
 {\small\color{muted}
-Artifacts in \texttt{report/}: summary CSV, summary JSON, success figure, and core-loss figure.
+Generated from \texttt{tools/generate\_pusht\_official\_report\_assets.py} using live run metrics, split metadata, train metadata, and evaluation result files under \texttt{STABLEWM\_HOME}.
 }
 
 \end{document}

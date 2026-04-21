@@ -59,7 +59,7 @@ def get_episodes_length(dataset, episodes):
 
 
 def get_dataset(cfg, dataset_name):
-    dataset_path = Path(cfg.cache_dir or swm.data.utils.get_cache_dir())
+    dataset_path = Path(cfg.get("cache_dir") or swm.data.utils.get_cache_dir())
     dataset = swm.data.HDF5Dataset(
         dataset_name,
         keys_to_cache=cfg.dataset.keys_to_cache,
@@ -106,8 +106,8 @@ def build_planning_context(
 
     past_blocks = []
     for offset in range(history_len - 1):
-        start = (offset + 1) * action_block
-        end = (offset + 2) * action_block
+        start = offset * action_block + (action_block - 1)
+        end = start + action_block
         past_blocks.append(
             raw_actions[:, start:end].reshape(raw_actions.size(0), 1, -1)
         )
@@ -120,6 +120,101 @@ def build_planning_context(
         )
 
     return planner_info
+
+
+class BoundedCEMSolver(swm.solver.CEMSolver):
+    """CEM solver that keeps normalized action candidates inside env bounds."""
+
+    def set_normalized_action_bounds(self, low: np.ndarray, high: np.ndarray) -> None:
+        low_t = torch.as_tensor(low, device=self.device, dtype=torch.float32)
+        high_t = torch.as_tensor(high, device=self.device, dtype=torch.float32)
+        self._normalized_low = low_t.reshape(self.n_envs, 1, 1, self.action_dim)
+        self._normalized_high = high_t.reshape(self.n_envs, 1, 1, self.action_dim)
+
+    @classmethod
+    def from_solver(cls, solver):
+        bounded = cls(
+            model=solver.model,
+            batch_size=solver.batch_size,
+            num_samples=solver.num_samples,
+            var_scale=solver.var_scale,
+            n_steps=solver.n_steps,
+            topk=solver.topk,
+            device=solver.device,
+        )
+        bounded.torch_gen = solver.torch_gen
+        return bounded
+
+    def _clip_candidates(self, candidates: torch.Tensor, start_idx: int, end_idx: int) -> torch.Tensor:
+        low = getattr(self, "_normalized_low", None)
+        high = getattr(self, "_normalized_high", None)
+        if low is None or high is None:
+            return candidates
+        return torch.clamp(candidates, low[start_idx:end_idx], high[start_idx:end_idx])
+
+    @torch.inference_mode()
+    def solve(self, info_dict: dict, init_action: torch.Tensor | None = None) -> dict:
+        start_time = time.time()
+        outputs = {"costs": [], "mean": [], "var": []}
+
+        mean, var = self.init_action_distrib(init_action)
+        mean = mean.to(self.device)
+        var = var.to(self.device)
+
+        total_envs = self.n_envs
+        for start_idx in range(0, total_envs, self.batch_size):
+            end_idx = min(start_idx + self.batch_size, total_envs)
+            current_bs = end_idx - start_idx
+
+            batch_mean = self._clip_candidates(mean[start_idx:end_idx].unsqueeze(1), start_idx, end_idx).squeeze(1)
+            batch_var = var[start_idx:end_idx]
+
+            expanded_infos = {}
+            for key, value in info_dict.items():
+                value_batch = value[start_idx:end_idx]
+                if torch.is_tensor(value):
+                    value_batch = value_batch.unsqueeze(1)
+                    value_batch = value_batch.expand(current_bs, self.num_samples, *value_batch.shape[2:])
+                elif isinstance(value, np.ndarray):
+                    value_batch = np.repeat(value_batch[:, None, ...], self.num_samples, axis=1)
+                expanded_infos[key] = value_batch
+
+            final_batch_cost = None
+            for _ in range(self.n_steps):
+                candidates = torch.randn(
+                    current_bs,
+                    self.num_samples,
+                    self.horizon,
+                    self.action_dim,
+                    generator=self.torch_gen,
+                    device=self.device,
+                )
+                candidates = candidates * batch_var.unsqueeze(1) + batch_mean.unsqueeze(1)
+                candidates[:, 0] = batch_mean
+                candidates = self._clip_candidates(candidates, start_idx, end_idx)
+
+                costs = self.model.get_cost(expanded_infos.copy(), candidates)
+                assert isinstance(costs, torch.Tensor), f"Expected cost to be a torch.Tensor, got {type(costs)}"
+                assert costs.ndim == 2 and costs.shape == (current_bs, self.num_samples), (
+                    f"Expected cost shape ({current_bs}, {self.num_samples}), got {costs.shape}"
+                )
+
+                topk_vals, topk_inds = torch.topk(costs, k=self.topk, dim=1, largest=False)
+                batch_indices = torch.arange(current_bs, device=self.device).unsqueeze(1).expand(-1, self.topk)
+                topk_candidates = candidates[batch_indices, topk_inds]
+                batch_mean = self._clip_candidates(topk_candidates.mean(dim=1).unsqueeze(1), start_idx, end_idx).squeeze(1)
+                batch_var = topk_candidates.std(dim=1).clamp_min(1e-6)
+                final_batch_cost = topk_vals.mean(dim=1).cpu().tolist()
+
+            mean[start_idx:end_idx] = batch_mean
+            var[start_idx:end_idx] = batch_var
+            outputs["costs"].extend(final_batch_cost)
+
+        outputs["actions"] = self._clip_candidates(mean.unsqueeze(1), 0, total_envs).squeeze(1).detach().cpu()
+        outputs["mean"] = [outputs["actions"]]
+        outputs["var"] = [var.detach().cpu()]
+        print(f"CEM solve time: {time.time() - start_time:.4f} seconds")
+        return outputs
 
 
 def find_stacked_wrapper(env):
@@ -280,13 +375,16 @@ def evaluate_from_dataset_fixed(
         "seeds": np.asarray(seeds) if seeds is not None else None,
     }
 
-    video_frames = np.empty(
-        (world.num_envs, eval_budget, *world.infos["pixels"].shape[-3:]),
-        dtype=np.uint8,
-    )
+    video_frames = None
+    if save_video:
+        video_frames = np.empty(
+            (world.num_envs, eval_budget, *world.infos["pixels"].shape[-3:]),
+            dtype=np.uint8,
+        )
 
     for step_idx in range(eval_budget):
-        video_frames[:, step_idx] = world.infos["pixels"][:, -1]
+        if save_video:
+            video_frames[:, step_idx] = world.infos["pixels"][:, -1]
         world.infos.update({k: v.copy() for k, v in goal_history_payload.items()})
         world.step()
         results["episode_successes"] = np.logical_or(
@@ -294,7 +392,8 @@ def evaluate_from_dataset_fixed(
         )
         world.envs.unwrapped._autoreset_envs = np.zeros((world.num_envs,))
 
-    video_frames[:, -1] = world.infos["pixels"][:, -1]
+    if save_video:
+        video_frames[:, -1] = world.infos["pixels"][:, -1]
     results["success_rate"] = (
         float(np.sum(results["episode_successes"])) / len(ep_idx_arr) * 100.0
     )
@@ -327,6 +426,35 @@ class LeWMEvalPolicy(swm.policy.WorldModelPolicy):
         super().__init__(*args, **kwargs)
         self.model_history_size = model_history_size
 
+    def set_env(self, env: Any) -> None:
+        super().set_env(env)
+        if not hasattr(self.solver, "set_normalized_action_bounds"):
+            return
+
+        if hasattr(env, "single_action_space"):
+            raw_low = np.asarray(env.single_action_space.low, dtype=np.float32).reshape(-1)
+            raw_high = np.asarray(env.single_action_space.high, dtype=np.float32).reshape(-1)
+        else:
+            raw_low = np.asarray(env.action_space.low, dtype=np.float32)
+            raw_high = np.asarray(env.action_space.high, dtype=np.float32)
+            if raw_low.ndim > 1:
+                raw_low = raw_low[0]
+                raw_high = raw_high[0]
+            raw_low = raw_low.reshape(-1)
+            raw_high = raw_high.reshape(-1)
+
+        if "action" in self.process:
+            normalized_bounds = self.process["action"].transform(np.stack([raw_low, raw_high]))
+            low = np.minimum(normalized_bounds[0], normalized_bounds[1])
+            high = np.maximum(normalized_bounds[0], normalized_bounds[1])
+        else:
+            low = np.minimum(raw_low, raw_high)
+            high = np.maximum(raw_low, raw_high)
+
+        block_low = np.repeat(np.tile(low, self.cfg.action_block)[None, :], env.num_envs, axis=0)
+        block_high = np.repeat(np.tile(high, self.cfg.action_block)[None, :], env.num_envs, axis=0)
+        self.solver.set_normalized_action_bounds(block_low, block_high)
+
     def get_action(self, info_dict: dict, **kwargs):
         assert hasattr(self, "env"), "Environment not set for the policy"
         assert "pixels" in info_dict, "'pixels' must be provided in info_dict"
@@ -357,6 +485,7 @@ class LeWMEvalPolicy(swm.policy.WorldModelPolicy):
         if "action" in self.process:
             action = self.process["action"].inverse_transform(action)
 
+        action = np.clip(action, self.env.action_space.low, self.env.action_space.high)
         return action
 
 
@@ -366,6 +495,9 @@ def run(cfg: DictConfig):
     assert (
         cfg.plan_config.horizon * cfg.plan_config.action_block <= cfg.eval.eval_budget
     ), "Planning horizon must be smaller than or equal to eval_budget"
+    assert (
+        cfg.eval.goal_offset_steps == cfg.plan_config.horizon * cfg.plan_config.action_block
+    ), "Goal offset must match the planned raw-step horizon"
 
     transform = {
         "pixels": img_transform(cfg),
@@ -410,6 +542,8 @@ def run(cfg: DictConfig):
         plan_config["history_len"] = model_history_size
         config = swm.PlanConfig(**plan_config)
         solver = hydra.utils.instantiate(cfg.solver, model=model)
+        if isinstance(solver, swm.solver.CEMSolver) and not isinstance(solver, BoundedCEMSolver):
+            solver = BoundedCEMSolver.from_solver(solver)
         policy = LeWMEvalPolicy(
             solver=solver,
             config=config,
@@ -440,6 +574,11 @@ def run(cfg: DictConfig):
     valid_mask = (step_idx >= min_start_idx) & (step_idx <= max_start_per_row)
     valid_indices = np.nonzero(valid_mask)[0]
     print(valid_mask.sum(), "valid starting points found for evaluation.")
+    if len(valid_indices) < cfg.eval.num_eval:
+        raise ValueError(
+            f"Not enough valid starting points for evaluation: "
+            f"requested {cfg.eval.num_eval}, found {len(valid_indices)}"
+        )
 
     g = np.random.default_rng(cfg.seed)
     random_episode_indices = g.choice(
@@ -470,6 +609,13 @@ def run(cfg: DictConfig):
         save_video=cfg.output.get("save_video", False),
         video_path=results_dir,
         history_span=history_span,
+    )
+    metrics.update(
+        {
+            "eval_row_indices": random_episode_indices.tolist(),
+            "eval_episodes": np.asarray(eval_episodes).tolist(),
+            "eval_start_idx": np.asarray(eval_start_idx).tolist(),
+        }
     )
     end_time = time.time()
 

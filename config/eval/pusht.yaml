@@ -1,5 +1,4 @@
 defaults:
-  - launcher: local
   - solver: cem
   - _self_
 
