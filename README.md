@@ -119,9 +119,9 @@ The April 22, 2026 rerun uses two 50-start evaluation seeds per model.
 
 | Model | Seed 42 | Seed 43 | Aggregate | Wilson 95% CI |
 | --- | ---: | ---: | ---: | ---: |
-| Baseline LeWM | 2/50 | 1/50 | 3/100 = 3.0% | [1.03%, 8.45%] |
-| AF-LeWM-lite v1 | 2/50 | 3/50 | 5/100 = 5.0% | [2.15%, 11.18%] |
-| AF-LeWM-lite v2 | 1/50 | 2/50 | 3/100 = 3.0% | [1.03%, 8.45%] |
+| Baseline LeWM | 2/50 | 3/50 | 5/100 = 5.0% | [2.15%, 11.18%] |
+| AF-LeWM-lite v1 | 4/50 | 5/50 | 9/100 = 9.0% | [4.81%, 16.23%] |
+| AF-LeWM-lite v2 | 1/50 | 5/50 | 6/100 = 6.0% | [2.78%, 12.48%] |
 
 The evidence supports a reliability-checked exploratory ranking. The success counts are small and the intervals overlap.
 

@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -21,7 +22,7 @@ import hydra
 import numpy as np
 import stable_pretraining as spt
 import torch
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf, open_dict
 from sklearn import preprocessing
 from torchvision.transforms import v2 as transforms
 import stable_worldmodel as swm
@@ -66,6 +67,98 @@ def get_dataset(cfg, dataset_name):
         cache_dir=dataset_path,
     )
     return dataset
+
+
+def policy_run_dir(policy: str) -> Path:
+    return Path(swm.data.utils.get_cache_dir(), policy).parent
+
+
+def episode_row_indices(dataset, episode_indices):
+    rows = []
+    for episode_idx in episode_indices:
+        start = int(dataset.offsets[int(episode_idx)])
+        end = start + int(dataset.lengths[int(episode_idx)])
+        rows.extend(range(start, end))
+    return rows
+
+
+def resolve_normalizer_scope(dataset, policy: str):
+    if policy == "random":
+        return None, {
+            "normalizer_scope": "full_dataset_random_policy",
+            "split_metadata_path": None,
+        }
+
+    split_path = policy_run_dir(policy) / "split_metadata.json"
+    if not split_path.exists():
+        raise FileNotFoundError(
+            f"Missing split metadata for train-split normalizers: {split_path}"
+        )
+
+    split_metadata = json.loads(split_path.read_text())
+    train_episodes = split_metadata.get("train_episodes")
+    if not train_episodes:
+        raise ValueError(f"No train_episodes found in {split_path}")
+    if split_metadata.get("normalizer_episode_scope") not in (None, "train"):
+        raise ValueError(
+            f"Unsupported normalizer scope in {split_path}: "
+            f"{split_metadata.get('normalizer_episode_scope')}"
+        )
+
+    train_episodes = [int(ep) for ep in train_episodes]
+    max_episode = len(dataset.lengths) - 1
+    invalid = [ep for ep in train_episodes if ep < 0 or ep > max_episode]
+    if invalid:
+        raise ValueError(
+            f"Split metadata references invalid episode ids: {invalid[:5]}"
+        )
+
+    return train_episodes, {
+        "normalizer_scope": "train_episodes_from_split_metadata",
+        "split_metadata_path": str(split_path),
+        "train_episode_count": len(train_episodes),
+    }
+
+
+def fit_standard_processor(dataset, col: str, episode_indices=None):
+    processor = preprocessing.StandardScaler()
+    col_data = dataset.get_col_data(col)
+    if episode_indices is not None:
+        col_data = col_data[episode_row_indices(dataset, episode_indices)]
+    if col_data.ndim == 1:
+        col_data = col_data[~np.isnan(col_data)]
+    else:
+        col_data = col_data[~np.isnan(col_data).any(axis=1)]
+    if len(col_data) == 0:
+        raise ValueError(f"No finite rows available to fit scaler for '{col}'")
+    processor.fit(col_data)
+    return processor
+
+
+def build_processors(cfg, dataset, episode_indices=None):
+    process = {}
+    for col in cfg.dataset.keys_to_cache:
+        if col == "pixels":
+            continue
+        processor = fit_standard_processor(dataset, col, episode_indices)
+        process[col] = processor
+        if col != "action":
+            process[f"goal_{col}"] = process[col]
+    return process
+
+
+def to_jsonable(value):
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    if torch.is_tensor(value):
+        return value.detach().cpu().tolist()
+    if isinstance(value, dict):
+        return {str(k): to_jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [to_jsonable(v) for v in value]
+    return value
 
 
 def build_planning_context(
@@ -169,15 +262,10 @@ class BoundedCEMSolver(swm.solver.CEMSolver):
             batch_mean = self._clip_candidates(mean[start_idx:end_idx].unsqueeze(1), start_idx, end_idx).squeeze(1)
             batch_var = var[start_idx:end_idx]
 
-            expanded_infos = {}
+            batch_infos = {}
             for key, value in info_dict.items():
                 value_batch = value[start_idx:end_idx]
-                if torch.is_tensor(value):
-                    value_batch = value_batch.unsqueeze(1)
-                    value_batch = value_batch.expand(current_bs, self.num_samples, *value_batch.shape[2:])
-                elif isinstance(value, np.ndarray):
-                    value_batch = np.repeat(value_batch[:, None, ...], self.num_samples, axis=1)
-                expanded_infos[key] = value_batch
+                batch_infos[key] = value_batch
 
             final_batch_cost = None
             for _ in range(self.n_steps):
@@ -193,7 +281,7 @@ class BoundedCEMSolver(swm.solver.CEMSolver):
                 candidates[:, 0] = batch_mean
                 candidates = self._clip_candidates(candidates, start_idx, end_idx)
 
-                costs = self.model.get_cost(expanded_infos.copy(), candidates)
+                costs = self.model.get_cost(batch_infos.copy(), candidates)
                 assert isinstance(costs, torch.Tensor), f"Expected cost to be a torch.Tensor, got {type(costs)}"
                 assert costs.ndim == 2 and costs.shape == (current_bs, self.num_samples), (
                     f"Expected cost shape ({current_bs}, {self.num_samples}), got {costs.shape}"
@@ -203,7 +291,7 @@ class BoundedCEMSolver(swm.solver.CEMSolver):
                 batch_indices = torch.arange(current_bs, device=self.device).unsqueeze(1).expand(-1, self.topk)
                 topk_candidates = candidates[batch_indices, topk_inds]
                 batch_mean = self._clip_candidates(topk_candidates.mean(dim=1).unsqueeze(1), start_idx, end_idx).squeeze(1)
-                batch_var = topk_candidates.std(dim=1).clamp_min(1e-6)
+                batch_var = topk_candidates.std(dim=1, unbiased=False).clamp_min(1e-6)
                 final_batch_cost = topk_vals.mean(dim=1).cpu().tolist()
 
             mean[start_idx:end_idx] = batch_mean
@@ -327,6 +415,21 @@ def apply_dataset_callables(world, init_step, callables):
             getattr(env_unwrapped, method_name)(**prepared_args)
 
 
+def sync_dataset_goal_rendering(world, goal_state, goal_image=None):
+    """Keep PushT's rendered target overlay aligned with dataset goal_state."""
+
+    if goal_state is None:
+        return
+
+    for env_idx, env in enumerate(world.envs.unwrapped.envs):
+        env_unwrapped = env.unwrapped
+        current_goal_state = np.asarray(to_numpy_step(goal_state[env_idx])).reshape(-1)
+        if current_goal_state.size >= 5 and hasattr(env_unwrapped, "goal_pose"):
+            env_unwrapped.goal_pose = current_goal_state[2:5].copy()
+        if goal_image is not None and hasattr(env_unwrapped, "_goal"):
+            env_unwrapped._goal = to_numpy_step(goal_image[env_idx])
+
+
 def evaluate_from_dataset_fixed(
     world,
     dataset,
@@ -364,6 +467,11 @@ def evaluate_from_dataset_fixed(
     callable_state = deepcopy(init_step)
     callable_state.update(deepcopy(goal_step))
     apply_dataset_callables(world, callable_state, callables)
+    sync_dataset_goal_rendering(
+        world,
+        goal_step.get("goal_state"),
+        goal_step.get("goal"),
+    )
 
     world.infos.update({k: v.copy() for k, v in history_payload.items()})
     world.infos.update({k: v.copy() for k, v in goal_history_payload.items()})
@@ -504,26 +612,15 @@ def run(cfg: DictConfig):
         "goal": img_transform(cfg),
     }
 
-    dataset = get_dataset(cfg, cfg.eval.dataset_name)
-    stats_dataset = dataset
-    col_name = "episode_idx" if "episode_idx" in dataset.column_names else "ep_idx"
-    ep_indices, _ = np.unique(stats_dataset.get_col_data(col_name), return_index=True)
-
-    process = {}
-    for col in cfg.dataset.keys_to_cache:
-        if col == "pixels":
-            continue
-        processor = preprocessing.StandardScaler()
-        col_data = stats_dataset.get_col_data(col)
-        col_data = col_data[~np.isnan(col_data).any(axis=1)]
-        processor.fit(col_data)
-        process[col] = processor
-        if col != "action":
-            process[f"goal_{col}"] = process[col]
-
     policy = cfg.get("policy", "random")
+    dataset = get_dataset(cfg, cfg.eval.dataset_name)
+    col_name = "episode_idx" if "episode_idx" in dataset.column_names else "ep_idx"
+    ep_indices, _ = np.unique(dataset.get_col_data(col_name), return_index=True)
+    normalizer_episodes, normalizer_metadata = resolve_normalizer_scope(dataset, policy)
+    process = build_processors(cfg, dataset, normalizer_episodes)
     model_history_size = 1
     history_span = 1
+    actual_solver_metadata = {}
 
     if policy != "random":
         device = cfg.solver.device
@@ -544,6 +641,13 @@ def run(cfg: DictConfig):
         solver = hydra.utils.instantiate(cfg.solver, model=model)
         if isinstance(solver, swm.solver.CEMSolver) and not isinstance(solver, BoundedCEMSolver):
             solver = BoundedCEMSolver.from_solver(solver)
+        actual_solver_metadata = {
+            "solver_class": f"{solver.__class__.__module__}.{solver.__class__.__name__}",
+            "solver_batch_size": int(getattr(solver, "batch_size", -1)),
+            "solver_num_samples": int(getattr(solver, "num_samples", -1)),
+            "solver_n_steps": int(getattr(solver, "n_steps", -1)),
+            "solver_topk": int(getattr(solver, "topk", -1)),
+        }
         policy = LeWMEvalPolicy(
             solver=solver,
             config=config,
@@ -597,6 +701,11 @@ def run(cfg: DictConfig):
 
     world.set_policy(policy)
 
+    with open_dict(cfg):
+        cfg.eval.normalizer_metadata = normalizer_metadata
+        if actual_solver_metadata:
+            cfg.eval.actual_solver = actual_solver_metadata
+
     start_time = time.time()
     metrics = evaluate_from_dataset_fixed(
         world,
@@ -615,6 +724,8 @@ def run(cfg: DictConfig):
             "eval_row_indices": random_episode_indices.tolist(),
             "eval_episodes": np.asarray(eval_episodes).tolist(),
             "eval_start_idx": np.asarray(eval_start_idx).tolist(),
+            "normalizer_metadata": normalizer_metadata,
+            **actual_solver_metadata,
         }
     )
     end_time = time.time()
@@ -630,6 +741,7 @@ def run(cfg: DictConfig):
         f.write("\n")
         f.write("==== RESULTS ====\n")
         f.write(f"metrics: {metrics}\n")
+        f.write(f"metrics_json: {json.dumps(to_jsonable(metrics), sort_keys=True)}\n")
         f.write(f"evaluation_time: {end_time - start_time} seconds\n")
 
 

@@ -105,7 +105,14 @@ def run_train(extra_args: list[str] | None = None) -> bool:
     return ok
 
 
-def run_eval(extra_args: list[str] | None = None) -> bool:
+def _eval_output_filename(base_filename: str, num_eval: int | None) -> str:
+    if num_eval in (None, 50):
+        return base_filename
+    path = Path(base_filename)
+    return f"{path.stem}_num{num_eval}{path.suffix}"
+
+
+def run_eval(extra_args: list[str] | None = None, num_eval: int | None = None) -> bool:
     dataset_path = CACHE_DIR / PUSHT_DATASET
     if not dataset_path.exists():
         print(f"  SKIP evaluation: dataset not found: {dataset_path}")
@@ -125,6 +132,7 @@ def run_eval(extra_args: list[str] | None = None) -> bool:
     ok = True
     for run in PUSHT_STUDY_RUNS:
         for seed, output_filename in [(None, "pusht_results.txt"), (43, "pusht_results_seed43.txt")]:
+            output_filename = _eval_output_filename(output_filename, num_eval)
             cmd = [
                 sys.executable,
                 "eval.py",
@@ -171,7 +179,7 @@ def main() -> None:
         extra = []
         if args.num_eval:
             extra.append(f"eval.num_eval={args.num_eval}")
-        if not run_eval(extra):
+        if not run_eval(extra, num_eval=args.num_eval):
             sys.exit(1)
 
 

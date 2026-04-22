@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import os
@@ -78,7 +79,16 @@ def file_provenance(path: Path) -> dict[str, object]:
         "exists": True,
         "bytes": stat.st_size,
         "mtime": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+        "sha256": sha256_file(path),
     }
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def read_json(path: Path) -> dict[str, object]:
@@ -111,8 +121,23 @@ def extract_success_metrics(results_path: Path) -> dict[str, float]:
     if not results_path.exists():
         raise FileNotFoundError(f"Missing evaluation results file: {results_path}")
     text = results_path.read_text()
-    success_matches = re.findall(r"success_rate': ([0-9.]+)", text)
     eval_matches = re.findall(r"evaluation_time: ([0-9.]+) seconds", text)
+    json_matches = re.findall(r"^metrics_json: (.+)$", text, re.M)
+    if json_matches and eval_matches:
+        metrics = json.loads(json_matches[-1])
+        flags = metrics.get("episode_successes", [])
+        successes = sum(bool(flag) for flag in flags)
+        num_eval = len(flags)
+        success_percent = 100.0 * successes / num_eval if num_eval else 0.0
+        return {
+            "success_percent": success_percent,
+            "eval_time_seconds": float(eval_matches[-1]),
+            "successes": successes,
+            "num_eval": num_eval,
+            "reported_success_percent": float(metrics["success_rate"]),
+        }
+
+    success_matches = re.findall(r"success_rate': ([0-9.]+)", text)
     episode_matches = re.findall(r"episode_successes': array\(\[(.*?)\]\), 'seeds'", text, re.S)
     if not success_matches or not eval_matches or not episode_matches:
         raise ValueError(f"Could not parse results file: {results_path}")
@@ -162,10 +187,18 @@ def build_summary() -> tuple[list[dict[str, object]], dict[str, list[dict[str, f
         train_metadata_path = run_dir / "train_metadata.json"
         split_metadata_path = run_dir / "split_metadata.json"
         config_path = run_dir / "config.yaml"
+        checkpoint_path = run_dir / f"{meta['run_name']}_epoch_10_object.ckpt"
         result_paths = [run_dir / filename for filename in meta["results_files"]]
-        source_paths = [csv_path, train_metadata_path, split_metadata_path, config_path, *result_paths]
+        source_paths = [
+            csv_path,
+            train_metadata_path,
+            split_metadata_path,
+            config_path,
+            checkpoint_path,
+            *result_paths,
+        ]
 
-        if not csv_path.exists() or not all(path.exists() for path in result_paths):
+        if not csv_path.exists() or not checkpoint_path.exists() or not all(path.exists() for path in result_paths):
             missing = [str(path) for path in source_paths if not path.exists()]
             if ALLOW_STALE_FALLBACK and name in existing_summary and name in existing_curves:
                 warnings.append(f"{name}: using stale JSON fallback because sources are missing: {missing}")
@@ -258,8 +291,12 @@ def write_json(summary_rows: list[dict[str, object]], curves: dict[str, list[dic
         "schema_version": 2,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source_mode": "live" if not warnings else "mixed",
-        "git_commit": run_git(["rev-parse", "HEAD"]),
-        "git_worktree": git_worktree_summary(),
+        "git_head_at_generation": run_git(["rev-parse", "HEAD"]),
+        "git_worktree_at_generation": git_worktree_summary(),
+        "artifact_commit_note": (
+            "This file is generated before the commit that may contain it; "
+            "use git_head_at_generation for the source tree used during generation."
+        ),
         "stablewm_home": str(STABLEWM_HOME),
         "warnings": warnings,
         "summary": summary_rows,

@@ -43,7 +43,7 @@
 \vspace{0.2em}
 \fcolorbox{accent}{accentlight}{%
   \parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{
-    \textbf{Bottom line.} The reliable rerun reports \textbf{5/100} successes for \textbf{AF-LeWM-lite v1}. All models remain weak under the short matched budget, and the Wilson intervals overlap, so the current evidence supports an exploratory ranking rather than a benchmark-level claim.
+    \textbf{Bottom line.} The reliable rerun reports \textbf{9/100} successes for \textbf{AF-LeWM-lite v1}. All models remain weak under the short matched budget, and the Wilson intervals overlap, so the current evidence supports an exploratory ranking rather than a benchmark-level claim.
   }
 }
 
@@ -94,9 +94,9 @@ Each epoch-10 object checkpoint is evaluated on two independent 50-start samples
 \toprule
 Model & Params (M) & Train (min) & Core loss & Seed 42 & Seed 43 & Aggregate \\
 \midrule
-Baseline LeWM & 18.03 & 9.69 & 0.14731 & 2/50 & 1/50 & 3/100 = 3.0\% \\
-AF-LeWM-lite v1 & 18.17 & 13.30 & 0.15033 & 2/50 & 3/50 & 5/100 = 5.0\% \\
-AF-LeWM-lite v2 & 18.24 & 14.02 & 0.15139 & 1/50 & 2/50 & 3/100 = 3.0\% \\
+Baseline LeWM & 18.03 & 9.69 & 0.14731 & 2/50 & 3/50 & 5/100 = 5.0\% \\
+AF-LeWM-lite v1 & 18.17 & 13.30 & 0.15033 & 4/50 & 5/50 & 9/100 = 9.0\% \\
+AF-LeWM-lite v2 & 18.24 & 14.02 & 0.15139 & 1/50 & 5/50 & 6/100 = 6.0\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -108,9 +108,9 @@ AF-LeWM-lite v2 & 18.24 & 14.02 & 0.15139 & 1/50 & 2/50 & 3/100 = 3.0\% \\
 \toprule
 Model & Aggregate success & Wilson 95\% CI \\
 \midrule
-Baseline LeWM & 3/100 = 3.0\% & [1.03\%, 8.45\%] \\
-AF-LeWM-lite v1 & 5/100 = 5.0\% & [2.15\%, 11.18\%] \\
-AF-LeWM-lite v2 & 3/100 = 3.0\% & [1.03\%, 8.45\%] \\
+Baseline LeWM & 5/100 = 5.0\% & [2.15\%, 11.18\%] \\
+AF-LeWM-lite v1 & 9/100 = 9.0\% & [4.81\%, 16.23\%] \\
+AF-LeWM-lite v2 & 6/100 = 6.0\% & [2.78\%, 12.48\%] \\
 \bottomrule
 \end{tabular}
 \end{table}

@@ -134,13 +134,17 @@ except Exception as exc:
     print(f"  FAIL - {exc}")
 
 if ckpts:
-    try:
-        model = swm.policy.AutoCostModel(found_policies[0])
-        print(f"  OK - Checkpoint loaded: {found_policies[0]}")
-        print(f"  Has get_cost: {hasattr(model, 'get_cost')}")
-    except Exception as exc:
-        errors.append(f"Checkpoint loading failed: {exc}")
-        print(f"  FAIL - {exc}")
+    for policy in found_policies:
+        try:
+            model = swm.policy.AutoCostModel(policy)
+            has_get_cost = hasattr(model, "get_cost")
+            if not has_get_cost:
+                raise AttributeError("loaded object does not expose get_cost")
+            print(f"  OK - Checkpoint loaded: {policy}")
+            print(f"       Has get_cost: {has_get_cost}")
+        except Exception as exc:
+            errors.append(f"Checkpoint loading failed for {policy}: {exc}")
+            print(f"  FAIL - {policy}: {exc}")
 else:
     print("  SKIP - No reliable study checkpoints found yet")
 
