@@ -70,8 +70,8 @@ if pusht_path.exists():
     ds = swm.data.HDF5Dataset("pusht_expert_train", keys_to_cache=["action", "proprio", "state"])
     print(f"  pusht_expert_train.h5: OK ({len(ds)} samples)")
     if pusht_path.stat().st_size < PUSHT_MIN_OFFICIAL_BYTES:
-        warnings.append("pusht_expert_train.h5 is smaller than the official dataset threshold.")
-        print("  Warning: current PushT file is too small for the final study.")
+        errors.append("pusht_expert_train.h5 is smaller than the official dataset threshold.")
+        print("  FAIL - current PushT file is too small for the final study.")
 else:
     errors.append(f"Dataset not found: {pusht_path}")
     print(f"  FAIL - {pusht_path} not found")

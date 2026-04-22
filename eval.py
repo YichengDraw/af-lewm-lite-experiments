@@ -23,7 +23,6 @@ import numpy as np
 import stable_pretraining as spt
 import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
-from sklearn import preprocessing
 from torchvision.transforms import v2 as transforms
 import stable_worldmodel as swm
 
@@ -120,8 +119,19 @@ def resolve_normalizer_scope(dataset, policy: str):
     }
 
 
-def fit_standard_processor(dataset, col: str, episode_indices=None):
-    processor = preprocessing.StandardScaler()
+class ColumnStandardizer:
+    def __init__(self, mean, std):
+        self.mean = np.asarray(mean, dtype=np.float32)
+        self.std = np.asarray(std, dtype=np.float32)
+
+    def transform(self, x):
+        return ((np.asarray(x, dtype=np.float32) - self.mean) / self.std).astype(np.float32)
+
+    def inverse_transform(self, x):
+        return (np.asarray(x, dtype=np.float32) * self.std + self.mean).astype(np.float32)
+
+
+def fit_column_processor(dataset, col: str, episode_indices=None, eps: float = 1e-6):
     col_data = dataset.get_col_data(col)
     if episode_indices is not None:
         col_data = col_data[episode_row_indices(dataset, episode_indices)]
@@ -131,8 +141,10 @@ def fit_standard_processor(dataset, col: str, episode_indices=None):
         col_data = col_data[~np.isnan(col_data).any(axis=1)]
     if len(col_data) == 0:
         raise ValueError(f"No finite rows available to fit scaler for '{col}'")
-    processor.fit(col_data)
-    return processor
+    data = torch.from_numpy(np.asarray(col_data)).float()
+    mean = data.mean(0, keepdim=True).numpy()
+    std = data.std(0, keepdim=True).clamp_min(eps).numpy()
+    return ColumnStandardizer(mean, std)
 
 
 def build_processors(cfg, dataset, episode_indices=None):
@@ -140,7 +152,7 @@ def build_processors(cfg, dataset, episode_indices=None):
     for col in cfg.dataset.keys_to_cache:
         if col == "pixels":
             continue
-        processor = fit_standard_processor(dataset, col, episode_indices)
+        processor = fit_column_processor(dataset, col, episode_indices)
         process[col] = processor
         if col != "action":
             process[f"goal_{col}"] = process[col]
@@ -398,7 +410,12 @@ def apply_dataset_callables(world, init_step, callables):
         env_unwrapped = env.unwrapped
         for spec in callables:
             method_name = spec["method"]
+            required = bool(spec.get("required", True))
             if not hasattr(env_unwrapped, method_name):
+                if required:
+                    raise AttributeError(
+                        f"Required eval callable '{method_name}' is missing on env {env_idx}"
+                    )
                 continue
 
             args = spec.get("args", spec)
@@ -408,6 +425,11 @@ def apply_dataset_callables(world, init_step, callables):
                 in_dataset = arg_data.get("in_dataset", True)
                 if in_dataset:
                     if value not in init_step:
+                        if required:
+                            raise KeyError(
+                                f"Required eval callable '{method_name}' needs dataset key "
+                                f"'{value}' for argument '{arg_name}'"
+                            )
                         continue
                     prepared_args[arg_name] = to_numpy_step(init_step[value][env_idx])
                 else:

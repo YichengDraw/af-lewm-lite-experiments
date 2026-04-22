@@ -20,6 +20,7 @@ REPORT_DIR = ROOT / "report"
 DIAGRAM_DIR = REPORT_DIR / "diagrams"
 STABLEWM_HOME = Path(os.environ.get("STABLEWM_HOME", Path.home() / ".stable-wm")).expanduser()
 RUNS_DIR = STABLEWM_HOME / "runs" / "pusht_expert_train"
+PUSHT_DATASET_PATH = STABLEWM_HOME / "pusht_expert_train.h5"
 ALLOW_STALE_FALLBACK = os.environ.get("AFLEWM_ALLOW_STALE_REPORT_FALLBACK") == "1"
 
 
@@ -198,7 +199,7 @@ def build_summary() -> tuple[list[dict[str, object]], dict[str, list[dict[str, f
             *result_paths,
         ]
 
-        if not csv_path.exists() or not checkpoint_path.exists() or not all(path.exists() for path in result_paths):
+        if not all(path.exists() for path in source_paths):
             missing = [str(path) for path in source_paths if not path.exists()]
             if ALLOW_STALE_FALLBACK and name in existing_summary and name in existing_curves:
                 warnings.append(f"{name}: using stale JSON fallback because sources are missing: {missing}")
@@ -298,6 +299,7 @@ def write_json(summary_rows: list[dict[str, object]], curves: dict[str, list[dic
             "use git_head_at_generation for the source tree used during generation."
         ),
         "stablewm_home": str(STABLEWM_HOME),
+        "dataset_source": file_provenance(PUSHT_DATASET_PATH),
         "warnings": warnings,
         "summary": summary_rows,
         "curves": curves,

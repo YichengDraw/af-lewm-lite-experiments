@@ -39,11 +39,32 @@ PUSHT_STUDY_RUNS = [
     },
 ]
 
-for run in PUSHT_STUDY_RUNS:
-    run["policy"] = (
-        "runs/pusht_expert_train/"
-        f"{run['output_model_name']}/{run['output_model_name']}_epoch_10"
-    )
+
+def study_runs(epoch: int = 10) -> list[dict[str, str]]:
+    runs = []
+    for run in PUSHT_STUDY_RUNS:
+        current = dict(run)
+        current["policy"] = (
+            "runs/pusht_expert_train/"
+            f"{current['output_model_name']}/{current['output_model_name']}_epoch_{epoch}"
+        )
+        runs.append(current)
+    return runs
+
+
+def require_pusht_dataset() -> Path | None:
+    dataset_path = CACHE_DIR / PUSHT_DATASET
+    if not dataset_path.exists():
+        print(f"  SKIP: dataset not found: {dataset_path}")
+        return None
+    size = dataset_path.stat().st_size
+    if size < PUSHT_MIN_OFFICIAL_BYTES:
+        print(
+            f"  SKIP: dataset is too small for the official study: "
+            f"{dataset_path} ({size / 1e9:.2f} GB)"
+        )
+        return None
+    return dataset_path
 
 
 def check_status() -> bool:
@@ -67,7 +88,7 @@ def check_status() -> bool:
     if archive.exists() and not dataset_path.exists():
         print(f"  Pending extract: {archive.name} ({archive.stat().st_size / 1e9:.2f} GB)")
 
-    for run in PUSHT_STUDY_RUNS:
+    for run in study_runs():
         ckpt_path = CACHE_DIR / f"{run['policy']}_object.ckpt"
         status = "OK" if ckpt_path.exists() else "MISSING"
         print(f"  Study {run['name']}: [{status}] {run['policy']}")
@@ -77,13 +98,12 @@ def check_status() -> bool:
 
 
 def run_train(extra_args: list[str] | None = None) -> bool:
-    dataset_path = CACHE_DIR / PUSHT_DATASET
-    if not dataset_path.exists():
-        print(f"  SKIP training: dataset not found: {dataset_path}")
+    if require_pusht_dataset() is None:
+        print("  SKIP training: official PushT dataset is not ready.")
         return False
 
     ok = True
-    for run in PUSHT_STUDY_RUNS:
+    for run in study_runs():
         cmd = [
             sys.executable,
             "train.py",
@@ -112,15 +132,15 @@ def _eval_output_filename(base_filename: str, num_eval: int | None) -> str:
     return f"{path.stem}_num{num_eval}{path.suffix}"
 
 
-def run_eval(extra_args: list[str] | None = None, num_eval: int | None = None) -> bool:
-    dataset_path = CACHE_DIR / PUSHT_DATASET
-    if not dataset_path.exists():
-        print(f"  SKIP evaluation: dataset not found: {dataset_path}")
+def run_eval(extra_args: list[str] | None = None, num_eval: int | None = None, epoch: int = 10) -> bool:
+    if require_pusht_dataset() is None:
+        print("  SKIP evaluation: official PushT dataset is not ready.")
         return False
 
+    runs = study_runs(epoch=epoch)
     missing = [
         run["policy"]
-        for run in PUSHT_STUDY_RUNS
+        for run in runs
         if not (CACHE_DIR / f"{run['policy']}_object.ckpt").exists()
     ]
     if missing:
@@ -130,7 +150,7 @@ def run_eval(extra_args: list[str] | None = None, num_eval: int | None = None) -
         return False
 
     ok = True
-    for run in PUSHT_STUDY_RUNS:
+    for run in runs:
         for seed, output_filename in [(None, "pusht_results.txt"), (43, "pusht_results_seed43.txt")]:
             output_filename = _eval_output_filename(output_filename, num_eval)
             cmd = [
@@ -179,7 +199,8 @@ def main() -> None:
         extra = []
         if args.num_eval:
             extra.append(f"eval.num_eval={args.num_eval}")
-        if not run_eval(extra, num_eval=args.num_eval):
+        eval_epoch = args.epochs or 10
+        if not run_eval(extra, num_eval=args.num_eval, epoch=eval_epoch):
             sys.exit(1)
 
 
