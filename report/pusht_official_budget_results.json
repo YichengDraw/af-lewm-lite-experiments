@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-04-22T06:30:59.928483+00:00",
+  "generated_at": "2026-04-22T06:33:47.674458+00:00",
   "source_mode": "live",
-  "git_head_at_generation": "f00d12c6f43958bc9bef7278ef9620ea048043d2",
+  "git_head_at_generation": "74268e76b3ae6f6cde7a35af0d7970b7ab64ae90",
   "git_worktree_at_generation": {
-    "dirty": true,
-    "status_entry_count": 1
+    "dirty": false,
+    "status_entry_count": 0
   },
   "artifact_commit_note": "This file is generated before the commit that may contain it; use git_head_at_generation for the source tree used during generation.",
   "stablewm_home": "C:\\Users\\yiche\\.stable-wm",
