@@ -43,7 +43,7 @@
 \vspace{0.2em}
 \fcolorbox{accent}{accentlight}{%
   \parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{
-    \textbf{Bottom line.} The reliable rerun reports \textbf{9/100} successes for \textbf{AF-LeWM-lite v1}. All models remain weak under the short matched budget, and the Wilson intervals overlap, so the current evidence supports an exploratory ranking rather than a benchmark-level claim.
+    \textbf{Bottom line.} The reliable rerun reports \textbf{10/100} successes for \textbf{AF-LeWM-lite v1}. All models remain weak under the short matched budget, and the Wilson intervals overlap, so the current evidence supports an exploratory ranking rather than a benchmark-level claim.
   }
 }
 
@@ -72,12 +72,14 @@ Each epoch-10 object checkpoint is evaluated on two independent 50-start samples
 \section*{Implementation Fixes}
 \begin{itemize}[leftmargin=1.2em, itemsep=0.16em, topsep=0.16em]
   \item Training now uses episode-disjoint subsets rather than overlapping clip-level random split.
-  \item Action, proprioception, and state normalizers are fitted on training episodes only.
+  \item Evaluation reconstructs the exact training normalizers from the recorded train split metadata.
   \item Fresh reliable runs fail fast when old metrics or checkpoints already exist.
   \item Evaluation reconstructs the raw 15-step history window and compresses it to the model's 3-frame context.
   \item Goal indexing is asserted against the planned raw-step horizon.
+  \item PushT goal rendering caches are synchronized after dataset-goal reset before replanning.
+  \item Batched CEM evaluates all 50 envs together without expanding pixels or goal images over candidate samples.
   \item CEM candidate actions, elite means, and returned normalized plans are clamped to normalized env action bounds before inverse transform.
-  \item Evaluation writes row, episode, and start-step provenance for every sampled rollout.
+  \item Evaluation writes row, episode, start-step, train split, checkpoint, and raw dataset provenance.
 \end{itemize}
 
 \begin{figure}[h]
@@ -94,9 +96,9 @@ Each epoch-10 object checkpoint is evaluated on two independent 50-start samples
 \toprule
 Model & Params (M) & Train (min) & Core loss & Seed 42 & Seed 43 & Aggregate \\
 \midrule
-Baseline LeWM & 18.03 & 9.69 & 0.14731 & 2/50 & 3/50 & 5/100 = 5.0\% \\
-AF-LeWM-lite v1 & 18.17 & 13.30 & 0.15033 & 4/50 & 5/50 & 9/100 = 9.0\% \\
-AF-LeWM-lite v2 & 18.24 & 14.02 & 0.15139 & 1/50 & 5/50 & 6/100 = 6.0\% \\
+Baseline LeWM & 18.03 & 9.69 & 0.14731 & 2/50 & 4/50 & 6/100 = 6.0\% \\
+AF-LeWM-lite v1 & 18.17 & 13.30 & 0.15033 & 5/50 & 5/50 & 10/100 = 10.0\% \\
+AF-LeWM-lite v2 & 18.24 & 14.02 & 0.15139 & 1/50 & 4/50 & 5/100 = 5.0\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -108,9 +110,9 @@ AF-LeWM-lite v2 & 18.24 & 14.02 & 0.15139 & 1/50 & 5/50 & 6/100 = 6.0\% \\
 \toprule
 Model & Aggregate success & Wilson 95\% CI \\
 \midrule
-Baseline LeWM & 5/100 = 5.0\% & [2.15\%, 11.18\%] \\
-AF-LeWM-lite v1 & 9/100 = 9.0\% & [4.81\%, 16.23\%] \\
-AF-LeWM-lite v2 & 6/100 = 6.0\% & [2.78\%, 12.48\%] \\
+Baseline LeWM & 6/100 = 6.0\% & [2.78\%, 12.48\%] \\
+AF-LeWM-lite v1 & 10/100 = 10.0\% & [5.52\%, 17.44\%] \\
+AF-LeWM-lite v2 & 5/100 = 5.0\% & [2.15\%, 11.18\%] \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -133,7 +135,7 @@ AF-LeWM-lite v2 & 6/100 = 6.0\% & [2.78\%, 12.48\%] \\
 \section*{Interpretation}
 The corrected result should be read conservatively. The best model in this rerun is \textbf{AF-LeWM-lite v1}, but the aggregate success counts are small and the intervals overlap. The current study is useful as a reliability-checked ablation of the AF shaping idea; it does not establish a strong PushT control result.
 
-The most important conclusion is methodological: after removing split leakage, full-data normalization, stale checkpoint continuation, and invalid CEM candidate actions, any remaining weakness is visible in the audited protocol rather than hidden in the implementation.
+The most important conclusion is methodological: after removing split leakage, eval/train scaler mismatch, stale checkpoint continuation, stale target rendering, and invalid CEM candidate actions, any remaining weakness is visible in the audited protocol rather than hidden in the implementation.
 
 \vfill
 {\small\color{muted}

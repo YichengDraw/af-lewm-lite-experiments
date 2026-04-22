@@ -287,13 +287,26 @@ def build_summary() -> tuple[list[dict[str, object]], dict[str, list[dict[str, f
     return summary_rows, curves, warnings
 
 
-def write_json(summary_rows: list[dict[str, object]], curves: dict[str, list[dict[str, float]]], warnings: list[str]) -> None:
-    payload = {
-        "schema_version": 2,
+def capture_generation_context() -> dict[str, object]:
+    return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "source_mode": "live" if not warnings else "mixed",
         "git_head_at_generation": run_git(["rev-parse", "HEAD"]),
         "git_worktree_at_generation": git_worktree_summary(),
+    }
+
+
+def write_json(
+    summary_rows: list[dict[str, object]],
+    curves: dict[str, list[dict[str, float]]],
+    warnings: list[str],
+    generation_context: dict[str, object],
+) -> None:
+    payload = {
+        "schema_version": 2,
+        "generated_at": generation_context["generated_at"],
+        "source_mode": "live" if not warnings else "mixed",
+        "git_head_at_generation": generation_context["git_head_at_generation"],
+        "git_worktree_at_generation": generation_context["git_worktree_at_generation"],
         "artifact_commit_note": (
             "This file is generated before the commit that may contain it; "
             "use git_head_at_generation for the source tree used during generation."
@@ -454,10 +467,12 @@ def save_diagram_sources() -> None:
 """,
         "implementation_fix_map.mmd": """flowchart LR
   A["Prior risk: clip-level split leakage"] --> B["Episode-disjoint train/val split"]
-  C["Prior risk: full-data normalizer"] --> D["Normalizer fitted on train episodes"]
+  C["Prior risk: eval/train scaler mismatch"] --> D["Exact train-split scaler reconstruction"]
   E["Prior risk: stale checkpoint resume"] --> F["Fresh-run fail-fast unless resume=True"]
   G["Prior risk: invalid CEM candidates"] --> H["Bound normalized candidates and elites"]
-  I["Prior risk: weak result provenance"] --> J["Store split/train/eval source metadata"]
+  I["Prior risk: stale rendered goal marker"] --> J["Sync PushT goal render caches after reset"]
+  K["Prior risk: serialized 50-env CEM"] --> L["Batch solver across eval envs without candidate pixel expansion"]
+  M["Prior risk: weak result provenance"] --> N["Store dataset/split/train/eval source metadata"]
 """,
     }
     for filename, text in sources.items():
@@ -537,28 +552,32 @@ def draw_experiment_flow() -> None:
 
 
 def draw_fix_map() -> None:
-    fig, ax = plt.subplots(figsize=(12.2, 4.8))
+    fig, ax = plt.subplots(figsize=(12.2, 6.4))
     ax.set_xlim(0, 12.2)
-    ax.set_ylim(0, 4.8)
+    ax.set_ylim(0, 6.4)
     ax.axis("off")
     ax.set_title("Implementation Fix Map", fontsize=15, fontweight="bold", pad=12)
 
     left = [
         "Clip-level\nsplit leakage",
-        "Full-data\nnormalizer",
+        "Eval/train\nscaler mismatch",
         "Stale checkpoint\nresume",
         "Unbounded\nCEM candidates",
+        "Stale rendered\ngoal marker",
+        "Serialized\n50-env CEM",
         "Weak provenance\nfor report",
     ]
     right = [
         "Episode-disjoint\nsplit",
-        "Train-episode\nnormalizer",
+        "Exact train-split\nscaler",
         "Fresh-run\nfail-fast",
         "Clamp normalized\ncandidate blocks",
-        "Split / train / eval\nmetadata",
+        "Sync PushT\nrender caches",
+        "Batch solver\nwithout pixel blowup",
+        "Dataset / split /\ntrain / eval metadata",
     ]
     for i, (ltext, rtext) in enumerate(zip(left, right)):
-        y = 3.75 - i * 0.72
+        y = 5.05 - i * 0.74
         lbox = add_box(ax, (0.35, y), ltext, "#FEE2E2", width=3.0, height=0.52)
         rbox = add_box(ax, (8.85, y), rtext, "#DCFCE7", width=3.0, height=0.52)
         add_arrow(ax, lbox, rbox, "fix")
@@ -702,12 +721,14 @@ Each epoch-10 object checkpoint is evaluated on two independent 50-start samples
 \section*{{Implementation Fixes}}
 \begin{{itemize}}[leftmargin=1.2em, itemsep=0.16em, topsep=0.16em]
   \item Training now uses episode-disjoint subsets rather than overlapping clip-level random split.
-  \item Action, proprioception, and state normalizers are fitted on training episodes only.
+  \item Evaluation reconstructs the exact training normalizers from the recorded train split metadata.
   \item Fresh reliable runs fail fast when old metrics or checkpoints already exist.
   \item Evaluation reconstructs the raw 15-step history window and compresses it to the model's 3-frame context.
   \item Goal indexing is asserted against the planned raw-step horizon.
+  \item PushT goal rendering caches are synchronized after dataset-goal reset before replanning.
+  \item Batched CEM evaluates all 50 envs together without expanding pixels or goal images over candidate samples.
   \item CEM candidate actions, elite means, and returned normalized plans are clamped to normalized env action bounds before inverse transform.
-  \item Evaluation writes row, episode, and start-step provenance for every sampled rollout.
+  \item Evaluation writes row, episode, start-step, train split, checkpoint, and raw dataset provenance.
 \end{{itemize}}
 
 \begin{{figure}}[h]
@@ -759,7 +780,7 @@ Model & Aggregate success & Wilson 95\% CI \\
 \section*{{Interpretation}}
 The corrected result should be read conservatively. The best model in this rerun is \textbf{{{tex_escape(best['model'])}}}, but the aggregate success counts are small and the intervals overlap. The current study is useful as a reliability-checked ablation of the AF shaping idea; it does not establish a strong PushT control result.
 
-The most important conclusion is methodological: after removing split leakage, full-data normalization, stale checkpoint continuation, and invalid CEM candidate actions, any remaining weakness is visible in the audited protocol rather than hidden in the implementation.
+The most important conclusion is methodological: after removing split leakage, eval/train scaler mismatch, stale checkpoint continuation, stale target rendering, and invalid CEM candidate actions, any remaining weakness is visible in the audited protocol rather than hidden in the implementation.
 
 \vfill
 {{\small\color{{muted}}
@@ -773,12 +794,13 @@ Generated from \texttt{{tools/generate\_pusht\_official\_report\_assets.py}} usi
 
 def main() -> None:
     REPORT_DIR.mkdir(exist_ok=True)
+    generation_context = capture_generation_context()
     save_diagram_sources()
     draw_model_pipeline()
     draw_experiment_flow()
     draw_fix_map()
     summary_rows, curves, warnings = build_summary()
-    write_json(summary_rows, curves, warnings)
+    write_json(summary_rows, curves, warnings, generation_context)
     write_csv(summary_rows)
     plot_success(summary_rows)
     plot_core_loss(curves)

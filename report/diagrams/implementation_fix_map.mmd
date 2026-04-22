@@ -1,6 +1,8 @@
 flowchart LR
   A["Prior risk: clip-level split leakage"] --> B["Episode-disjoint train/val split"]
-  C["Prior risk: full-data normalizer"] --> D["Normalizer fitted on train episodes"]
+  C["Prior risk: eval/train scaler mismatch"] --> D["Exact train-split scaler reconstruction"]
   E["Prior risk: stale checkpoint resume"] --> F["Fresh-run fail-fast unless resume=True"]
   G["Prior risk: invalid CEM candidates"] --> H["Bound normalized candidates and elites"]
-  I["Prior risk: weak result provenance"] --> J["Store split/train/eval source metadata"]
+  I["Prior risk: stale rendered goal marker"] --> J["Sync PushT goal render caches after reset"]
+  K["Prior risk: serialized 50-env CEM"] --> L["Batch solver across eval envs without candidate pixel expansion"]
+  M["Prior risk: weak result provenance"] --> N["Store dataset/split/train/eval source metadata"]
