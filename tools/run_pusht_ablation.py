@@ -348,6 +348,11 @@ def clean_report_row(row: dict[str, object]) -> dict[str, object]:
     return {key: clean_report_value(value) for key, value in row.items()}
 
 
+def train_seed_from_suffix(suffix: str) -> int | str:
+    match = re.search(r"_s2_seed(\d+)", suffix)
+    return int(match.group(1)) if match else ""
+
+
 def write_report(
     variants: list[Variant],
     *,
@@ -372,6 +377,8 @@ def write_report(
             row = {
                 "stage": stage,
                 "variant_id": variant.variant_id,
+                "train_seed": train_seed_from_suffix(suffix),
+                "output_suffix": suffix,
                 "output_model_name": output_name,
                 "description": variant.description,
                 "checkpoint_exists": checkpoint_path(output_name, epoch).exists(),

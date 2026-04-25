@@ -14,6 +14,7 @@
     "diag_emb_nuisance_probe_mse": null,
     "diag_has_app_emb": false,
     "output_model_name": "lewm_pusht_reliable",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 4.0,
     "seed42_successes": 2,
@@ -21,6 +22,7 @@
     "seed43_success_rate": 8.0,
     "seed43_successes": 4,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "baseline"
   },
   {
@@ -38,6 +40,7 @@
     "diag_emb_nuisance_probe_mse": 0.08192730695009232,
     "diag_has_app_emb": true,
     "output_model_name": "aflewm_pusht_v1_reliable",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 10.0,
     "seed42_successes": 5,
@@ -45,6 +48,7 @@
     "seed43_success_rate": 10.0,
     "seed43_successes": 5,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "v1_current"
   },
   {
@@ -62,6 +66,7 @@
     "diag_emb_nuisance_probe_mse": 0.09771999716758728,
     "diag_has_app_emb": true,
     "output_model_name": "aflewm_pusht_v1_inv_only",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 2.0,
     "seed42_successes": 1,
@@ -69,6 +74,7 @@
     "seed43_success_rate": 2.0,
     "seed43_successes": 1,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "v1_inv_only"
   },
   {
@@ -86,6 +92,7 @@
     "diag_emb_nuisance_probe_mse": 0.09907785058021545,
     "diag_has_app_emb": true,
     "output_model_name": "aflewm_pusht_v1_indep_only",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 2.0,
     "seed42_successes": 1,
@@ -93,6 +100,7 @@
     "seed43_success_rate": 8.0,
     "seed43_successes": 4,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "v1_indep_only"
   },
   {
@@ -110,6 +118,7 @@
     "diag_emb_nuisance_probe_mse": 0.10107357054948807,
     "diag_has_app_emb": true,
     "output_model_name": "aflewm_pusht_v1_seq_only",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 4.0,
     "seed42_successes": 2,
@@ -117,6 +126,7 @@
     "seed43_success_rate": 6.0,
     "seed43_successes": 3,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "v1_seq_only"
   },
   {
@@ -134,6 +144,7 @@
     "diag_emb_nuisance_probe_mse": 0.11603939533233643,
     "diag_has_app_emb": true,
     "output_model_name": "aflewm_pusht_v1_seq_stopgrad",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 2.0,
     "seed42_successes": 1,
@@ -141,6 +152,7 @@
     "seed43_success_rate": 4.0,
     "seed43_successes": 2,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "v1_seq_stopgrad"
   },
   {
@@ -158,6 +170,7 @@
     "diag_emb_nuisance_probe_mse": 2.5446033477783203,
     "diag_has_app_emb": true,
     "output_model_name": "aflewm_pusht_v2_app_nuisance_only",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 6.0,
     "seed42_successes": 3,
@@ -165,6 +178,7 @@
     "seed43_success_rate": 10.0,
     "seed43_successes": 5,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "v2_app_nuisance_only"
   },
   {
@@ -182,6 +196,7 @@
     "diag_emb_nuisance_probe_mse": 31.987606048583984,
     "diag_has_app_emb": true,
     "output_model_name": "aflewm_pusht_v2_weak_grl",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 2.0,
     "seed42_successes": 1,
@@ -189,6 +204,7 @@
     "seed43_success_rate": 10.0,
     "seed43_successes": 5,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "v2_weak_grl"
   },
   {
@@ -206,6 +222,7 @@
     "diag_emb_nuisance_probe_mse": 0.10362627357244492,
     "diag_has_app_emb": true,
     "output_model_name": "aflewm_pusht_v2_reliable",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 2.0,
     "seed42_successes": 1,
@@ -213,6 +230,7 @@
     "seed43_success_rate": 8.0,
     "seed43_successes": 4,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "v2_current"
   },
   {
@@ -230,6 +248,7 @@
     "diag_emb_nuisance_probe_mse": 1.1061521768569946,
     "diag_has_app_emb": true,
     "output_model_name": "aflewm_pusht_v2_grl_warmup",
+    "output_suffix": "",
     "seed42_episodes": 50,
     "seed42_success_rate": 8.0,
     "seed42_successes": 4,
@@ -237,6 +256,7 @@
     "seed43_success_rate": 4.0,
     "seed43_successes": 2,
     "stage": "stage1",
+    "train_seed": "",
     "variant_id": "v2_grl_warmup"
   }
 ]

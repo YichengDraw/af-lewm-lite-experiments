@@ -3,6 +3,11 @@
 Stage 1 was run locally on the RTX 4070 Laptop GPU from source commit `5a586929`.
 Each row aggregates two evaluation seeds, `50` PushT episodes per seed.
 
+Pre-Stage-2 gate: after Stage 1, the eval goal synchronization path was hardened
+and AF independence loss was changed from raw covariance to standardized
+cross-covariance. Stage 2 should retrain the selected AF variants from scratch;
+the Stage 1 table remains a selection signal for which structures to scale.
+
 | Variant | Seed 42 | Seed 43 | Aggregate |
 | --- | ---: | ---: | ---: |
 | `v1_current` | 10.0 | 10.0 | 10.0 |

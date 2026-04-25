@@ -153,10 +153,12 @@ def _appearance_stats_targets(pixels):
 
 
 def _cross_covariance_loss(x, y):
-    x = x.reshape(-1, x.size(-1))
-    y = y.reshape(-1, y.size(-1))
+    x = x.float().reshape(-1, x.size(-1))
+    y = y.float().reshape(-1, y.size(-1))
     x = x - x.mean(dim=0, keepdim=True)
     y = y - y.mean(dim=0, keepdim=True)
+    x = x / (x.std(dim=0, unbiased=False, keepdim=True).clamp_min(1e-6))
+    y = y / (y.std(dim=0, unbiased=False, keepdim=True).clamp_min(1e-6))
     denom = max(x.size(0) - 1, 1)
     cov = (x.transpose(0, 1) @ y) / denom
     return cov.square().mean()

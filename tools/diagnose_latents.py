@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 from pathlib import Path
@@ -107,6 +108,16 @@ def ridge_probe_mse(features: torch.Tensor | None, targets: torch.Tensor | None,
     )
     pred = x_test @ weights
     return float(F.mse_loss(pred, y_test).item())
+
+
+def clean_json_value(value):
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {key: clean_json_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [clean_json_value(item) for item in value]
+    return value
 
 
 @torch.inference_mode()
@@ -221,8 +232,9 @@ def main() -> None:
 
     out_path = Path(args.output) if args.output else run_dir / "latent_diagnostics.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
-    print(json.dumps(payload, indent=2, sort_keys=True))
+    payload = clean_json_value(payload)
+    out_path.write_text(json.dumps(payload, allow_nan=False, indent=2, sort_keys=True))
+    print(json.dumps(payload, allow_nan=False, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

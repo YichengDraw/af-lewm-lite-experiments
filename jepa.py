@@ -197,7 +197,7 @@ class JEPA(nn.Module):
         }
         init_info["pixels"] = pixels[:, 0]
         init_info = self.encode(init_info)
-        emb = info["emb"] = init_info["emb"].unsqueeze(1).expand(B, S, -1, -1)
+        emb = init_info["emb"].unsqueeze(1).expand(B, S, -1, -1)
 
         # flatten batch and sample dimensions for rollout
         emb = rearrange(emb, "b s ... -> (b s) ...").clone()
@@ -265,7 +265,7 @@ class JEPA(nn.Module):
         pred_emb = info_dict["predicted_emb"]  # (B,S, T-1, dim)
         goal_emb = info_dict["goal_emb"]  # (B, S, T, dim)
 
-        goal_emb = goal_emb[..., -1:, :].expand_as(pred_emb)
+        goal_emb = goal_emb[..., -1:, :]
 
         # return last-step cost per action candidate
         cost = F.mse_loss(

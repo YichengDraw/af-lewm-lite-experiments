@@ -446,6 +446,10 @@ def sync_dataset_goal_rendering(world, goal_state, goal_image=None):
     for env_idx, env in enumerate(world.envs.unwrapped.envs):
         env_unwrapped = env.unwrapped
         current_goal_state = np.asarray(to_numpy_step(goal_state[env_idx])).reshape(-1)
+        if hasattr(env_unwrapped, "_set_goal_state"):
+            env_unwrapped._set_goal_state(current_goal_state.copy())
+        elif hasattr(env_unwrapped, "goal_state"):
+            env_unwrapped.goal_state = current_goal_state.copy()
         if current_goal_state.size >= 5 and hasattr(env_unwrapped, "goal_pose"):
             env_unwrapped.goal_pose = current_goal_state[2:5].copy()
         if goal_image is not None and hasattr(env_unwrapped, "_goal"):

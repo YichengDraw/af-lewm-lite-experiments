@@ -59,11 +59,9 @@ class ModelObjectCallBack(Callback):
         )
 
         if trainer.is_global_zero:
-            if (trainer.current_epoch + 1) % self.epoch_interval == 0:
-                self._dump_model(pl_module.model, output_path)
-
-            # save final epoch
-            if (trainer.current_epoch + 1) == trainer.max_epochs:
+            is_interval_epoch = (trainer.current_epoch + 1) % self.epoch_interval == 0
+            is_final_epoch = (trainer.current_epoch + 1) == trainer.max_epochs
+            if is_interval_epoch or is_final_epoch:
                 self._dump_model(pl_module.model, output_path)
 
     def _dump_model(self, model, path):
