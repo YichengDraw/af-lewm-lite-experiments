@@ -209,7 +209,7 @@ def train_variant(
     if max_epochs is not None:
         cmd.append(f"trainer.max_epochs={max_epochs}")
     if object_epoch_interval is not None:
-        cmd.append(f"object_epoch_interval={object_epoch_interval}")
+        cmd.append(f"+object_epoch_interval={object_epoch_interval}")
     if smoke:
         cmd.extend(
             [
