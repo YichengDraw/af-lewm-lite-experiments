@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import os
 import re
 import subprocess
@@ -337,6 +338,16 @@ def load_diagnostics(output_model_name: str) -> dict[str, object]:
     return json.loads(path.read_text()).get("metrics", {})
 
 
+def clean_report_value(value):
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
+
+
+def clean_report_row(row: dict[str, object]) -> dict[str, object]:
+    return {key: clean_report_value(value) for key, value in row.items()}
+
+
 def write_report(
     variants: list[Variant],
     *,
@@ -375,7 +386,7 @@ def write_report(
             row.update(latest_val_metrics(output_name))
             for key, value in load_diagnostics(output_name).items():
                 row[f"diag_{key}"] = value
-            rows.append(row)
+            rows.append(clean_report_row(row))
 
     report_suffix = f"{stage}_summary"
     if stage == "stage2":
