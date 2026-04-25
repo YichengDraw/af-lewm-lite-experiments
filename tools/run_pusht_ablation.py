@@ -149,15 +149,20 @@ def checkpoint_path(output_model_name: str, epoch: int) -> Path:
     return STABLEWM_HOME / f"{policy_path(output_model_name, epoch)}_object.ckpt"
 
 
-def result_filename(seed: int, num_eval: int) -> str:
+def result_filename(seed: int, num_eval: int, epoch: int | None = None) -> str:
     if seed == 42:
         base = "pusht_results.txt"
     else:
         base = f"pusht_results_seed{seed}.txt"
-    if num_eval == 50:
+    suffixes = []
+    if epoch is not None:
+        suffixes.append(f"epoch{epoch}")
+    if num_eval != 50:
+        suffixes.append(f"num{num_eval}")
+    if not suffixes:
         return base
     path = Path(base)
-    return f"{path.stem}_num{num_eval}{path.suffix}"
+    return f"{path.stem}_{'_'.join(suffixes)}{path.suffix}"
 
 
 def run_command(cmd: list[str], *, dry_run: bool) -> int:
@@ -223,6 +228,7 @@ def eval_variant(
     num_eval: int,
     epoch: int,
     output_suffix: str = "",
+    result_epoch: int | None = None,
 ) -> bool:
     require_dataset()
     output_name = f"{variant.output_model_name}{output_suffix}"
@@ -233,7 +239,7 @@ def eval_variant(
 
     ok = True
     for seed in seeds:
-        filename = result_filename(seed, 2 if smoke else num_eval)
+        filename = result_filename(seed, 2 if smoke else num_eval, result_epoch)
         output_path = run_dir(output_name) / filename
         if output_path.exists() and not force:
             print(f"SKIP eval {variant.variant_id} seed={seed}: result exists: {output_path}")
@@ -361,6 +367,7 @@ def write_report(
     epoch: int,
     stage: str,
     output_suffixes: list[str] | None = None,
+    result_epoch: int | None = None,
 ) -> None:
     REPORT_DIR.mkdir(exist_ok=True)
     rows = []
@@ -369,7 +376,7 @@ def write_report(
         for suffix in suffixes:
             output_name = f"{variant.output_model_name}{suffix}"
             seed_results = {
-                seed: parse_eval_result(run_dir(output_name) / result_filename(seed, num_eval))
+                seed: parse_eval_result(run_dir(output_name) / result_filename(seed, num_eval, result_epoch))
                 for seed in seeds
             }
             successes = sum(result["successes"] for result in seed_results.values() if result)
@@ -417,6 +424,7 @@ def status(
     seeds: list[int],
     num_eval: int,
     output_suffixes: list[str] | None = None,
+    result_epoch: int | None = None,
 ) -> None:
     print(f"STABLEWM_HOME={STABLEWM_HOME}")
     print(f"dataset={'OK' if PUSHT_DATASET.exists() and PUSHT_DATASET.stat().st_size >= PUSHT_MIN_OFFICIAL_BYTES else 'MISSING'} {PUSHT_DATASET}")
@@ -427,7 +435,7 @@ def status(
             ckpt = checkpoint_path(output_name, epoch)
             result_bits = []
             for seed in seeds:
-                result_path = run_dir(output_name) / result_filename(seed, num_eval)
+                result_path = run_dir(output_name) / result_filename(seed, num_eval, result_epoch)
                 result_bits.append(f"seed{seed}={'OK' if result_path.exists() else 'MISSING'}")
             diag_path = run_dir(output_name) / "latent_diagnostics.json"
             print(
@@ -467,15 +475,24 @@ def main() -> None:
         eval_epoch = 1 if args.smoke else (args.eval_epoch or args.stage2_epochs)
         train_epochs = 1 if args.smoke else args.stage2_epochs
         eval_seeds = args.eval_seeds if args.eval_seeds != [42, 43] else [42, 43, 44, 45]
+        result_epoch = eval_epoch
     else:
         suffixes = ["_smoke"] if args.smoke else [""]
         train_jobs = [(variant, None, "_smoke" if args.smoke else "") for variant in variants]
         eval_epoch = 1 if args.smoke else (args.eval_epoch or args.epoch)
         train_epochs = None
         eval_seeds = args.eval_seeds
+        result_epoch = None
 
     if args.mode == "status":
-        status(variants, epoch=eval_epoch, seeds=eval_seeds, num_eval=args.num_eval, output_suffixes=suffixes)
+        status(
+            variants,
+            epoch=eval_epoch,
+            seeds=eval_seeds,
+            num_eval=args.num_eval,
+            output_suffixes=suffixes,
+            result_epoch=result_epoch,
+        )
         return
 
     ok = True
@@ -505,6 +522,7 @@ def main() -> None:
                     num_eval=args.num_eval,
                     epoch=eval_epoch,
                     output_suffix=suffix,
+                    result_epoch=result_epoch,
                 ) and ok
                 if not ok:
                     sys.exit(1)
@@ -535,6 +553,7 @@ def main() -> None:
                 epoch=eval_epoch,
                 stage=args.stage,
                 output_suffixes=suffixes,
+                result_epoch=result_epoch,
             )
 
 
