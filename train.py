@@ -47,8 +47,27 @@ class _GradientReversal(torch.autograd.Function):
 
 def _gradient_reverse(x, coeff):
     if coeff <= 0:
-        return x
+        return x.detach()
     return _GradientReversal.apply(x, coeff)
+
+
+def _scheduled_grl_lambda(module, cfg, base_coeff: float) -> float:
+    warmup_frac = float(cfg.loss.get("grl_warmup_frac", 0.0))
+    if base_coeff <= 0 or warmup_frac <= 0:
+        return base_coeff
+
+    trainer = getattr(module, "trainer", None)
+    total_steps = getattr(trainer, "estimated_stepping_batches", None)
+    if not total_steps:
+        limit_batches = cfg.trainer.get("limit_train_batches", 1)
+        if isinstance(limit_batches, int):
+            total_steps = int(cfg.trainer.max_epochs) * max(1, int(limit_batches))
+        else:
+            total_steps = int(cfg.trainer.max_epochs)
+
+    warmup_steps = max(1, int(float(total_steps) * warmup_frac))
+    current_step = max(0, int(getattr(module, "global_step", 0)))
+    return base_coeff * min(1.0, current_step / warmup_steps)
 
 
 def _imagenet_normalization_stats(device, dtype):
@@ -248,7 +267,16 @@ def lejepa_forward(self, batch, stage, cfg):
 
         dyn_nuisance_weight = float(aflwm_cfg.loss.get("dynamics_nuisance_weight", 0.0))
         if getattr(self.model, "dynamics_nuisance_head", None) is not None and dyn_nuisance_weight > 0:
-            grl_lambda = float(aflwm_cfg.loss.get("grl_lambda", 1.0))
+            grl_lambda = _scheduled_grl_lambda(
+                self,
+                aflwm_cfg,
+                float(aflwm_cfg.loss.get("grl_lambda", 1.0)),
+            )
+            output["grl_lambda_loss"] = torch.as_tensor(
+                grl_lambda,
+                device=emb.device,
+                dtype=emb.dtype,
+            )
             output["dynamics_nuisance_loss"] = 0.5 * (
                 F.mse_loss(
                     self.model.predict_dynamics_nuisance(_gradient_reverse(aug_a["emb"], grl_lambda)),
@@ -483,11 +511,14 @@ def run(cfg):
 
     callbacks = []
     if cfg.get("dump_object", True):
+        object_epoch_interval = int(
+            cfg.get("object_epoch_interval", int(cfg.trainer.max_epochs) + 1)
+        )
         callbacks.append(
             ModelObjectCallBack(
                 dirpath=run_dir,
                 filename=cfg.output_model_name,
-                epoch_interval=int(cfg.trainer.max_epochs) + 1,
+                epoch_interval=object_epoch_interval,
             )
         )
 
