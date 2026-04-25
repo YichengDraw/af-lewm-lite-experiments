@@ -149,6 +149,10 @@ def checkpoint_path(output_model_name: str, epoch: int) -> Path:
     return STABLEWM_HOME / f"{policy_path(output_model_name, epoch)}_object.ckpt"
 
 
+def diagnostics_filename(epoch: int | None = None) -> str:
+    return f"latent_diagnostics_epoch{epoch}.json" if epoch is not None else "latent_diagnostics.json"
+
+
 def result_filename(seed: int, num_eval: int, epoch: int | None = None) -> str:
     if seed == 42:
         base = "pusht_results.txt"
@@ -275,6 +279,7 @@ def diagnose_variant(
     epoch: int,
     output_suffix: str = "",
     num_batches: int = 32,
+    result_epoch: int | None = None,
 ) -> bool:
     output_name = f"{variant.output_model_name}{output_suffix}"
     ckpt = checkpoint_path(output_name, epoch)
@@ -282,7 +287,7 @@ def diagnose_variant(
         print(f"SKIP diagnose {variant.variant_id}: missing checkpoint: {ckpt}")
         return False
 
-    output_path = run_dir(output_name) / "latent_diagnostics.json"
+    output_path = run_dir(output_name) / diagnostics_filename(result_epoch)
     if output_path.exists() and not force:
         print(f"SKIP diagnose {variant.variant_id}: diagnostics exist: {output_path}")
         return True
@@ -337,8 +342,8 @@ def latest_val_metrics(output_model_name: str) -> dict[str, object]:
     }
 
 
-def load_diagnostics(output_model_name: str) -> dict[str, object]:
-    path = run_dir(output_model_name) / "latent_diagnostics.json"
+def load_diagnostics(output_model_name: str, result_epoch: int | None = None) -> dict[str, object]:
+    path = run_dir(output_model_name) / diagnostics_filename(result_epoch)
     if not path.exists():
         return {}
     return json.loads(path.read_text()).get("metrics", {})
@@ -398,7 +403,7 @@ def write_report(
                 row[f"seed{seed}_episodes"] = result["episodes"] if result else ""
                 row[f"seed{seed}_success_rate"] = result["success_rate"] if result else ""
             row.update(latest_val_metrics(output_name))
-            for key, value in load_diagnostics(output_name).items():
+            for key, value in load_diagnostics(output_name, result_epoch).items():
                 row[f"diag_{key}"] = value
             rows.append(clean_report_row(row))
 
@@ -437,7 +442,7 @@ def status(
             for seed in seeds:
                 result_path = run_dir(output_name) / result_filename(seed, num_eval, result_epoch)
                 result_bits.append(f"seed{seed}={'OK' if result_path.exists() else 'MISSING'}")
-            diag_path = run_dir(output_name) / "latent_diagnostics.json"
+            diag_path = run_dir(output_name) / diagnostics_filename(result_epoch)
             print(
                 f"{variant.variant_id + suffix:34s} ckpt={'OK' if ckpt.exists() else 'MISSING'} "
                 f"diag={'OK' if diag_path.exists() else 'MISSING'} "
@@ -536,6 +541,7 @@ def main() -> None:
                     epoch=eval_epoch,
                     output_suffix=suffix,
                     num_batches=args.diagnostic_batches,
+                    result_epoch=result_epoch,
                 ) and ok
                 if not ok:
                     sys.exit(1)
