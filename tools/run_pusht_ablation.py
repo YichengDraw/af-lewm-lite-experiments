@@ -359,6 +359,13 @@ def clean_report_row(row: dict[str, object]) -> dict[str, object]:
     return {key: clean_report_value(value) for key, value in row.items()}
 
 
+def report_name_suffix(stage: str, epoch: int, smoke: bool) -> str:
+    stage_label = f"{stage}_smoke" if smoke else stage
+    if stage == "stage2":
+        return f"{stage_label}_epoch{epoch}_summary"
+    return f"{stage_label}_summary"
+
+
 def train_seed_from_suffix(suffix: str) -> int | str:
     match = re.search(r"_s2_seed(\d+)", suffix)
     return int(match.group(1)) if match else ""
@@ -373,6 +380,7 @@ def write_report(
     stage: str,
     output_suffixes: list[str] | None = None,
     result_epoch: int | None = None,
+    smoke: bool = False,
 ) -> None:
     REPORT_DIR.mkdir(exist_ok=True)
     rows = []
@@ -407,9 +415,7 @@ def write_report(
                 row[f"diag_{key}"] = value
             rows.append(clean_report_row(row))
 
-    report_suffix = f"{stage}_summary"
-    if stage == "stage2":
-        report_suffix = f"{stage}_epoch{epoch}_summary"
+    report_suffix = report_name_suffix(stage, epoch, smoke)
     json_path = REPORT_DIR / f"pusht_ablation_{report_suffix}.json"
     csv_path = REPORT_DIR / f"pusht_ablation_{report_suffix}.csv"
     json_path.write_text(json.dumps(rows, indent=2, sort_keys=True))
@@ -461,7 +467,7 @@ def main() -> None:
     parser.add_argument("--epoch", type=int, default=10)
     parser.add_argument("--eval-epoch", type=int, default=None)
     parser.add_argument("--num-eval", type=int, default=50)
-    parser.add_argument("--eval-seeds", type=int, nargs="*", default=[42, 43])
+    parser.add_argument("--eval-seeds", type=int, nargs="*", default=None)
     parser.add_argument("--stage2-train-seeds", type=int, nargs="*", default=[3072, 3073])
     parser.add_argument("--stage2-epochs", type=int, default=50)
     parser.add_argument("--stage2-object-interval", type=int, default=5)
@@ -469,6 +475,7 @@ def main() -> None:
     args = parser.parse_args()
 
     variants = selected_variants(args.ids)
+    effective_num_eval = 2 if args.smoke else args.num_eval
     if args.stage == "stage2":
         base_suffixes = [f"_s2_seed{seed}" for seed in args.stage2_train_seeds]
         suffixes = [f"{suffix}_smoke" for suffix in base_suffixes] if args.smoke else base_suffixes
@@ -479,14 +486,14 @@ def main() -> None:
         ]
         eval_epoch = 1 if args.smoke else (args.eval_epoch or args.stage2_epochs)
         train_epochs = 1 if args.smoke else args.stage2_epochs
-        eval_seeds = args.eval_seeds if args.eval_seeds != [42, 43] else [42, 43, 44, 45]
+        eval_seeds = args.eval_seeds if args.eval_seeds is not None else [42, 43, 44, 45]
         result_epoch = eval_epoch
     else:
         suffixes = ["_smoke"] if args.smoke else [""]
         train_jobs = [(variant, None, "_smoke" if args.smoke else "") for variant in variants]
         eval_epoch = 1 if args.smoke else (args.eval_epoch or args.epoch)
         train_epochs = None
-        eval_seeds = args.eval_seeds
+        eval_seeds = args.eval_seeds if args.eval_seeds is not None else [42, 43]
         result_epoch = None
 
     if args.mode == "status":
@@ -494,7 +501,7 @@ def main() -> None:
             variants,
             epoch=eval_epoch,
             seeds=eval_seeds,
-            num_eval=args.num_eval,
+            num_eval=effective_num_eval,
             output_suffixes=suffixes,
             result_epoch=result_epoch,
         )
@@ -524,7 +531,7 @@ def main() -> None:
                     force=args.force,
                     smoke=args.smoke,
                     seeds=eval_seeds,
-                    num_eval=args.num_eval,
+                    num_eval=effective_num_eval,
                     epoch=eval_epoch,
                     output_suffix=suffix,
                     result_epoch=result_epoch,
@@ -547,19 +554,18 @@ def main() -> None:
                     sys.exit(1)
     if args.mode in ("report", "all"):
         if args.dry_run:
-            report_suffix = f"{args.stage}_summary"
-            if args.stage == "stage2":
-                report_suffix = f"{args.stage}_epoch{eval_epoch}_summary"
+            report_suffix = report_name_suffix(args.stage, eval_epoch, args.smoke)
             print(f"DRY RUN: would write report/pusht_ablation_{report_suffix}.[json,csv]")
         else:
             write_report(
                 variants,
                 seeds=eval_seeds,
-                num_eval=args.num_eval,
+                num_eval=effective_num_eval,
                 epoch=eval_epoch,
                 stage=args.stage,
                 output_suffixes=suffixes,
                 result_epoch=result_epoch,
+                smoke=args.smoke,
             )
 
 
