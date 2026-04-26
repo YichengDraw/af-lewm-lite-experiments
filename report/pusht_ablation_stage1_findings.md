@@ -8,18 +8,18 @@ and AF independence loss was changed from raw covariance to standardized
 cross-covariance. Stage 2 should retrain the selected AF variants from scratch;
 the Stage 1 table remains a selection signal for which structures to scale.
 
-| Variant | Seed 42 | Seed 43 | Aggregate |
-| --- | ---: | ---: | ---: |
-| `v1_current` | 10.0 | 10.0 | 10.0 |
-| `v2_app_nuisance_only` | 6.0 | 10.0 | 8.0 |
-| `baseline` | 4.0 | 8.0 | 6.0 |
-| `v2_weak_grl` | 2.0 | 10.0 | 6.0 |
-| `v2_grl_warmup` | 8.0 | 4.0 | 6.0 |
-| `v1_indep_only` | 2.0 | 8.0 | 5.0 |
-| `v1_seq_only` | 4.0 | 6.0 | 5.0 |
-| `v2_current` | 2.0 | 8.0 | 5.0 |
-| `v1_seq_stopgrad` | 2.0 | 4.0 | 3.0 |
-| `v1_inv_only` | 2.0 | 2.0 | 2.0 |
+| Variant | Family | Seed 42 | Seed 43 | Successes | Episodes | Aggregate | Delta vs baseline |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `v1_current` | v1 | 10.0 | 10.0 | 10 | 100 | 10.0 | +4.0 pp |
+| `v2_app_nuisance_only` | v2 | 6.0 | 10.0 | 8 | 100 | 8.0 | +2.0 pp |
+| `baseline` | LeWM | 4.0 | 8.0 | 6 | 100 | 6.0 | 0.0 pp |
+| `v2_weak_grl` | v2 | 2.0 | 10.0 | 6 | 100 | 6.0 | 0.0 pp |
+| `v2_grl_warmup` | v2 | 8.0 | 4.0 | 6 | 100 | 6.0 | 0.0 pp |
+| `v1_indep_only` | v1 | 2.0 | 8.0 | 5 | 100 | 5.0 | -1.0 pp |
+| `v1_seq_only` | v1 | 4.0 | 6.0 | 5 | 100 | 5.0 | -1.0 pp |
+| `v2_current` | v2 | 2.0 | 8.0 | 5 | 100 | 5.0 | -1.0 pp |
+| `v1_seq_stopgrad` | v1 | 2.0 | 4.0 | 3 | 100 | 3.0 | -3.0 pp |
+| `v1_inv_only` | v1 | 2.0 | 2.0 | 2 | 100 | 2.0 | -4.0 pp |
 
 Current decision:
 

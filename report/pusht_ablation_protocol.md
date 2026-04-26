@@ -27,7 +27,7 @@ Stage 1 uses:
 After Stage 1, choose baseline plus the best v1-family and v2-family variants. Run:
 
 ```powershell
-python tools/run_pusht_ablation.py --stage stage2 --mode all --ids baseline v1_current v2_weak_grl
+python tools/run_pusht_ablation.py --stage stage2 --mode all --ids baseline v1_current v2_app_nuisance_only
 ```
 
 Stage 2 uses:
@@ -41,8 +41,8 @@ Stage 2 uses:
 To inspect intermediate checkpoints:
 
 ```powershell
-python tools/run_pusht_ablation.py --stage stage2 --mode eval --ids baseline v1_current v2_weak_grl --eval-epoch 25
-python tools/run_pusht_ablation.py --stage stage2 --mode report --ids baseline v1_current v2_weak_grl --eval-epoch 25
+python tools/run_pusht_ablation.py --stage stage2 --mode eval --ids baseline v1_current v2_app_nuisance_only --eval-epoch 25
+python tools/run_pusht_ablation.py --stage stage2 --mode report --ids baseline v1_current v2_app_nuisance_only --eval-epoch 25
 ```
 
 ## Decision Rule

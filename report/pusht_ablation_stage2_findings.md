@@ -11,22 +11,57 @@ variant per checkpoint epoch.
 
 ## Aggregate Success Rate
 
-| Checkpoint | Variant | Successes | Episodes | Success rate |
-| --- | --- | ---: | ---: | ---: |
-| epoch 25 | `baseline` | 21 | 400 | 5.25 |
-| epoch 25 | `v1_current` | 19 | 400 | 4.75 |
-| epoch 25 | `v2_app_nuisance_only` | 20 | 400 | 5.00 |
-| epoch 50 | `baseline` | 25 | 400 | 6.25 |
-| epoch 50 | `v1_current` | 22 | 400 | 5.50 |
-| epoch 50 | `v2_app_nuisance_only` | 20 | 400 | 5.00 |
+| Checkpoint | Variant | Train seeds | Successes | Episodes | Success rate | Delta vs baseline |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| epoch 25 | `baseline` | 3072, 3073 | 21 | 400 | 5.25% | 0.00 pp |
+| epoch 25 | `v1_current` | 3072, 3073 | 19 | 400 | 4.75% | -0.50 pp |
+| epoch 25 | `v2_app_nuisance_only` | 3072, 3073 | 20 | 400 | 5.00% | -0.25 pp |
+| epoch 50 | `baseline` | 3072, 3073 | 25 | 400 | 6.25% | 0.00 pp |
+| epoch 50 | `v1_current` | 3072, 3073 | 22 | 400 | 5.50% | -0.75 pp |
+| epoch 50 | `v2_app_nuisance_only` | 3072, 3073 | 20 | 400 | 5.00% | -1.25 pp |
+
+Per-training-seed detail:
+
+| Checkpoint | Variant | Train seed | Successes | Episodes | Success rate |
+| --- | --- | ---: | ---: | ---: | ---: |
+| epoch 25 | `baseline` | 3072 | 11 | 200 | 5.50% |
+| epoch 25 | `baseline` | 3073 | 10 | 200 | 5.00% |
+| epoch 25 | `v1_current` | 3072 | 10 | 200 | 5.00% |
+| epoch 25 | `v1_current` | 3073 | 9 | 200 | 4.50% |
+| epoch 25 | `v2_app_nuisance_only` | 3072 | 8 | 200 | 4.00% |
+| epoch 25 | `v2_app_nuisance_only` | 3073 | 12 | 200 | 6.00% |
+| epoch 50 | `baseline` | 3072 | 14 | 200 | 7.00% |
+| epoch 50 | `baseline` | 3073 | 11 | 200 | 5.50% |
+| epoch 50 | `v1_current` | 3072 | 10 | 200 | 5.00% |
+| epoch 50 | `v1_current` | 3073 | 12 | 200 | 6.00% |
+| epoch 50 | `v2_app_nuisance_only` | 3072 | 13 | 200 | 6.50% |
+| epoch 50 | `v2_app_nuisance_only` | 3073 | 7 | 200 | 3.50% |
+
+Stage 1 screened every planned v1/v2 variant with one training seed and `100`
+episodes per structure. Stage 2 then scaled the leading v1-family and v2-family
+candidates only.
+
+| Stage 1 variant | Family | Successes | Episodes | Success rate | Delta vs baseline | Stage 2 status |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `baseline` | LeWM | 6 | 100 | 6.0 | 0.0 pp | scaled |
+| `v1_current` | v1 | 10 | 100 | 10.0 | +4.0 pp | scaled |
+| `v1_inv_only` | v1 | 2 | 100 | 2.0 | -4.0 pp | stopped |
+| `v1_indep_only` | v1 | 5 | 100 | 5.0 | -1.0 pp | stopped |
+| `v1_seq_only` | v1 | 5 | 100 | 5.0 | -1.0 pp | stopped |
+| `v1_seq_stopgrad` | v1 | 3 | 100 | 3.0 | -3.0 pp | stopped |
+| `v2_app_nuisance_only` | v2 | 8 | 100 | 8.0 | +2.0 pp | scaled |
+| `v2_weak_grl` | v2 | 6 | 100 | 6.0 | 0.0 pp | stopped |
+| `v2_current` | v2 | 5 | 100 | 5.0 | -1.0 pp | stopped |
+| `v2_grl_warmup` | v2 | 6 | 100 | 6.0 | 0.0 pp | stopped |
 
 ## Readout
 
-The Stage 1 v1 lead did not survive the longer two-seed Stage 2 check. At both
-epoch 25 and epoch 50, baseline is the strongest aggregate result. The margins
-are small in absolute success count, but the direction is consistent enough that
-AF-LeWM-lite should not be claimed as a robust PushT improvement under this
-setup.
+The exact answer to the baseline comparison is stage-dependent. In Stage 1,
+`v1_current` and `v2_app_nuisance_only` were above baseline, and three other
+v2-family rows tied or trailed baseline. In Stage 2, both scaled AF candidates
+were below baseline at epoch 25 and epoch 50. The margins are small in absolute
+success count, but the larger reliability check does not support AF-LeWM-lite as
+a robust PushT improvement under this setup.
 
 `v1_current` has the cleaner factorization diagnostics: epoch 50
 `diag_emb_app_cross_cov` is about `0.035-0.036`, and app augmentation

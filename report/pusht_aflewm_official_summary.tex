@@ -9,6 +9,7 @@
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{enumitem}
+\usepackage{float}
 
 \setmainfont{Georgia}
 \setsansfont{Segoe UI}
@@ -35,15 +36,15 @@
 {\sffamily
 \begin{center}
   {\Large\bfseries AF-LeWM-lite on Official PushT}\\[0.35em]
-  {\large Reliable Rerun Summary}\\[0.45em]
-  {\small April 22, 2026}
+  {\large Reliable Rerun and Ablation Summary}\\[0.45em]
+  {\small April 26, 2026}
 \end{center}
 }
 
 \vspace{0.2em}
 \fcolorbox{accent}{accentlight}{%
   \parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{
-    \textbf{Bottom line.} The reliable rerun reports \textbf{10/100} successes for \textbf{AF-LeWM-lite v1}. All models remain weak under the short matched budget, and the Wilson intervals overlap, so the current evidence supports an exploratory ranking rather than a benchmark-level claim.
+    \textbf{Bottom line.} The Stage 2 reliability check favors \textbf{Baseline LeWM}: \textbf{25/400} successes at epoch 50, versus \textbf{22/400} for \textbf{v1\_current} and \textbf{20/400} for \textbf{v2\_app\_nuisance\_only}. Stage 1 produced useful AF leads, but those leads did not persist after the longer two-seed check.
   }
 }
 
@@ -52,21 +53,21 @@ AF-LeWM-lite keeps the LeWM planning contract intact. Pixels are encoded by a sh
 
 The AF extension adds an appearance projection head \texttt{app\_emb} used only for representation shaping during training. v1 adds dynamics invariance under appearance augmentation and a cross-covariance penalty between \texttt{emb} and \texttt{app\_emb}. v2 adds sequence-consistent augmentation parameters, stop-gradient invariance, an appearance nuisance head, and a gradient-reversal nuisance head on the dynamics branch.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{aflewm_model_pipeline.png}
 \caption{Model pipeline. The planner sees only the dynamics branch; appearance heads affect training losses.}
 \end{figure}
 
 \section*{Reliable Experiment Protocol}
-The rerun uses the official \texttt{pusht\_expert\_train.h5} dataset, an episode-disjoint 90/10 train/validation split, normalizers fitted only on training episodes, and fresh-run guards that refuse to mix stale checkpoint or metrics artifacts with a new run. Each model is trained for 10 epochs with 200 training batches per epoch, 20 validation batches per epoch, batch size 4, bf16 precision, and seed 3072.
+The rerun uses the official \texttt{pusht\_expert\_train.h5} dataset, an episode-disjoint train/validation split, normalizers fitted only on training episodes, and fresh-run guards that refuse to mix stale checkpoint or metrics artifacts with a new run.
 
-Each epoch-10 object checkpoint is evaluated on two independent 50-start samples, \texttt{seed=42} and \texttt{seed=43}. The report aggregates 100 trials per model and reports Wilson 95\% intervals. Cross-model loss comparisons use the shared JEPA core objective \(\mathcal{L}_{core} = \mathcal{L}_{pred} + 0.09\mathcal{L}_{sigreg}\).
+Stage 1 screens every planned structure with train seed 3072, 10 epochs, eval seeds 42 and 43, and 50 PushT episodes per eval seed. Stage 2 scales the selected candidates \texttt{baseline}, \texttt{v1\_current}, and \texttt{v2\_app\_nuisance\_only} with train seeds 3072 and 3073, 50 epochs, eval seeds 42 through 45, and 50 episodes per eval seed. Stage 2 reports epoch-25 and epoch-50 checkpoints, giving 400 evaluation episodes per variant per checkpoint.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{pusht_experiment_flow.png}
-\caption{Experiment flow from official dataset to two-seed aggregate report.}
+\caption{Experiment flow from official dataset to checked aggregate reports.}
 \end{figure}
 
 \section*{Implementation Fixes}
@@ -82,64 +83,85 @@ Each epoch-10 object checkpoint is evaluated on two independent 50-start samples
   \item Evaluation writes row, episode, start-step, train split, checkpoint, and raw dataset provenance.
 \end{itemize}
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.95\linewidth]{implementation_fix_map.png}
 \caption{Reliability fixes that directly affect whether the experiment tests the intended design.}
 \end{figure}
 
 \section*{Results}
-\begin{table}[h]
+\begin{table}[H]
 \centering
-\small
-\begin{tabular}{lrrrrrr}
+\scriptsize
+\begin{tabular}{llrrrr}
 \toprule
-Model & Params (M) & Train (min) & Core loss & Seed 42 & Seed 43 & Aggregate \\
+Stage 1 variant & Family & Successes & Episodes & Success rate & Delta vs baseline \\
 \midrule
-Baseline LeWM & 18.03 & 9.69 & 0.14731 & 2/50 & 4/50 & 6/100 = 6.0\% \\
-AF-LeWM-lite v1 & 18.17 & 13.30 & 0.15033 & 5/50 & 5/50 & 10/100 = 10.0\% \\
-AF-LeWM-lite v2 & 18.24 & 14.02 & 0.15139 & 1/50 & 4/50 & 5/100 = 5.0\% \\
+\texttt{baseline} & LeWM & 6 & 100 & 6.0\% & 0.0 pp \\
+\texttt{v1\_current} & v1 & 10 & 100 & 10.0\% & +4.0 pp \\
+\texttt{v1\_inv\_only} & v1 & 2 & 100 & 2.0\% & -4.0 pp \\
+\texttt{v1\_indep\_only} & v1 & 5 & 100 & 5.0\% & -1.0 pp \\
+\texttt{v1\_seq\_only} & v1 & 5 & 100 & 5.0\% & -1.0 pp \\
+\texttt{v1\_seq\_stopgrad} & v1 & 3 & 100 & 3.0\% & -3.0 pp \\
+\texttt{v2\_app\_nuisance\_only} & v2 & 8 & 100 & 8.0\% & +2.0 pp \\
+\texttt{v2\_weak\_grl} & v2 & 6 & 100 & 6.0\% & 0.0 pp \\
+\texttt{v2\_current} & v2 & 5 & 100 & 5.0\% & -1.0 pp \\
+\texttt{v2\_grl\_warmup} & v2 & 6 & 100 & 6.0\% & 0.0 pp \\
 \bottomrule
 \end{tabular}
+\caption{Stage 1 structural screen. Two AF candidates beat baseline under the short 100-episode screen.}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \small
-\begin{tabular}{lrr}
+\begin{tabular}{llrrrr}
 \toprule
-Model & Aggregate success & Wilson 95\% CI \\
+Checkpoint & Variant & Successes & Episodes & Success rate & Delta vs baseline \\
 \midrule
-Baseline LeWM & 6/100 = 6.0\% & [2.78\%, 12.48\%] \\
-AF-LeWM-lite v1 & 10/100 = 10.0\% & [5.52\%, 17.44\%] \\
-AF-LeWM-lite v2 & 5/100 = 5.0\% & [2.15\%, 11.18\%] \\
+epoch 25 & \texttt{baseline} & 21 & 400 & 5.25\% & 0.00 pp \\
+epoch 25 & \texttt{v1\_current} & 19 & 400 & 4.75\% & -0.50 pp \\
+epoch 25 & \texttt{v2\_app\_nuisance\_only} & 20 & 400 & 5.00\% & -0.25 pp \\
+epoch 50 & \texttt{baseline} & 25 & 400 & 6.25\% & 0.00 pp \\
+epoch 50 & \texttt{v1\_current} & 22 & 400 & 5.50\% & -0.75 pp \\
+epoch 50 & \texttt{v2\_app\_nuisance\_only} & 20 & 400 & 5.00\% & -1.25 pp \\
 \bottomrule
 \end{tabular}
+\caption{Stage 2 reliability check. The scaled AF candidates trail baseline at both inspected checkpoints.}
 \end{table}
 
-\begin{figure}[h]
+\begin{table}[H]
 \centering
-\begin{subfigure}[t]{0.48\linewidth}
-  \centering
-  \includegraphics[width=\linewidth]{pusht_success_rate.png}
-  \caption{Two-seed planning success with Wilson intervals.}
-\end{subfigure}
-\hfill
-\begin{subfigure}[t]{0.48\linewidth}
-  \centering
-  \includegraphics[width=\linewidth]{pusht_val_core_loss.png}
-  \caption{Shared JEPA core loss across training epochs.}
-\end{subfigure}
-\end{figure}
+\scriptsize
+\begin{tabular}{llrrrr}
+\toprule
+Checkpoint & Variant & Train seed & Successes & Episodes & Success rate \\
+\midrule
+epoch 25 & \texttt{baseline} & 3072 & 11 & 200 & 5.50\% \\
+epoch 25 & \texttt{baseline} & 3073 & 10 & 200 & 5.00\% \\
+epoch 25 & \texttt{v1\_current} & 3072 & 10 & 200 & 5.00\% \\
+epoch 25 & \texttt{v1\_current} & 3073 & 9 & 200 & 4.50\% \\
+epoch 25 & \texttt{v2\_app\_nuisance\_only} & 3072 & 8 & 200 & 4.00\% \\
+epoch 25 & \texttt{v2\_app\_nuisance\_only} & 3073 & 12 & 200 & 6.00\% \\
+epoch 50 & \texttt{baseline} & 3072 & 14 & 200 & 7.00\% \\
+epoch 50 & \texttt{baseline} & 3073 & 11 & 200 & 5.50\% \\
+epoch 50 & \texttt{v1\_current} & 3072 & 10 & 200 & 5.00\% \\
+epoch 50 & \texttt{v1\_current} & 3073 & 12 & 200 & 6.00\% \\
+epoch 50 & \texttt{v2\_app\_nuisance\_only} & 3072 & 13 & 200 & 6.50\% \\
+epoch 50 & \texttt{v2\_app\_nuisance\_only} & 3073 & 7 & 200 & 3.50\% \\
+\bottomrule
+\end{tabular}
+\caption{Stage 2 per-training-seed detail.}
+\end{table}
 
 \section*{Interpretation}
-The corrected result should be read conservatively. The best model in this rerun is \textbf{AF-LeWM-lite v1}, but the aggregate success counts are small and the intervals overlap. The current study is useful as a reliability-checked ablation of the AF shaping idea; it does not establish a strong PushT control result.
+The corrected result should be read conservatively. Stage 1 did not show that all AF variants were weaker than baseline: \texttt{v1\_current} and \texttt{v2\_app\_nuisance\_only} were ahead under the short screen. Stage 2 is the stronger reliability check, and both scaled AF candidates trail baseline there. The current study is useful as a reliability-checked ablation of the AF shaping idea; it does not establish an AF-LeWM-lite PushT improvement.
 
-The most important conclusion is methodological: after removing split leakage, eval/train scaler mismatch, stale checkpoint continuation, stale target rendering, and invalid CEM candidate actions, any remaining weakness is visible in the audited protocol rather than hidden in the implementation.
+The main decision is to use baseline as the reliable PushT result for this repo. \texttt{v1\_current} remains valuable as a negative mechanism result because it produces cleaner appearance/dynamics factorization diagnostics, but the cleaner split does not improve planning success under this budget.
 
 \vfill
 {\small\color{muted}
-Generated from \texttt{tools/generate\_pusht\_official\_report\_assets.py} using live run metrics, split metadata, train metadata, and evaluation result files under \texttt{STABLEWM\_HOME}.
+Primary machine-readable outputs are the Stage 1 and Stage 2 CSV/JSON summaries under \texttt{report/}.
 }
 
 \end{document}

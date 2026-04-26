@@ -14,7 +14,8 @@ Planning uses only the dynamics latent. The appearance branch is a training-time
 
 ![AF-LeWM-lite model pipeline](report/aflewm_model_pipeline.png)
 
-The diagram source is tracked at `report/diagrams/aflewm_model_pipeline.mmd`.
+The tracked PNG is the reviewed architecture comparison image. The old Mermaid
+draft remains at `report/diagrams/aflewm_model_pipeline.mmd` for provenance.
 
 ## Reliable Experiment Flow
 
@@ -113,17 +114,50 @@ aflewm_pusht_v1_reliable
 aflewm_pusht_v2_reliable
 ```
 
-## Current Reliable Result
+## Current Ablation Result
 
-The April 22, 2026 rerun uses two 50-start evaluation seeds per model.
+The full result is stage-dependent. Stage 1 was a short structural screen, where
+`v1_current` and `v2_app_nuisance_only` were above baseline. Stage 2 was the
+larger reliability check, where the scaled AF variants finished below baseline
+at both inspected checkpoints.
 
-| Model | Seed 42 | Seed 43 | Aggregate | Wilson 95% CI |
-| --- | ---: | ---: | ---: | ---: |
-| Baseline LeWM | 2/50 | 4/50 | 6/100 = 6.0% | [2.78%, 12.48%] |
-| AF-LeWM-lite v1 | 5/50 | 5/50 | 10/100 = 10.0% | [5.52%, 17.44%] |
-| AF-LeWM-lite v2 | 1/50 | 4/50 | 5/100 = 5.0% | [2.15%, 11.18%] |
+### Stage 1 Structural Screen
 
-The evidence supports a reliability-checked exploratory ranking. The success counts are small and the intervals overlap.
+Stage 1 used one training seed, eval seeds `42` and `43`, and `100` total
+episodes per structure.
+
+| Variant | Family | Seed 42 | Seed 43 | Aggregate | Delta vs baseline |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `baseline` | LeWM | 4.0 | 8.0 | 6/100 = 6.0% | 0.0 pp |
+| `v1_current` | v1 | 10.0 | 10.0 | 10/100 = 10.0% | +4.0 pp |
+| `v1_inv_only` | v1 | 2.0 | 2.0 | 2/100 = 2.0% | -4.0 pp |
+| `v1_indep_only` | v1 | 2.0 | 8.0 | 5/100 = 5.0% | -1.0 pp |
+| `v1_seq_only` | v1 | 4.0 | 6.0 | 5/100 = 5.0% | -1.0 pp |
+| `v1_seq_stopgrad` | v1 | 2.0 | 4.0 | 3/100 = 3.0% | -3.0 pp |
+| `v2_app_nuisance_only` | v2 | 6.0 | 10.0 | 8/100 = 8.0% | +2.0 pp |
+| `v2_weak_grl` | v2 | 2.0 | 10.0 | 6/100 = 6.0% | 0.0 pp |
+| `v2_current` | v2 | 2.0 | 8.0 | 5/100 = 5.0% | -1.0 pp |
+| `v2_grl_warmup` | v2 | 8.0 | 4.0 | 6/100 = 6.0% | 0.0 pp |
+
+### Stage 2 Reliability Check
+
+Stage 2 scaled the selected candidates: `baseline`, `v1_current`, and
+`v2_app_nuisance_only`. It used two training seeds, eval seeds `42` through
+`45`, and `400` total episodes per variant per checkpoint epoch.
+
+| Checkpoint | Variant | Train seeds | Successes | Episodes | Success rate | Delta vs baseline |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| epoch 25 | `baseline` | 3072, 3073 | 21 | 400 | 5.25% | 0.00 pp |
+| epoch 25 | `v1_current` | 3072, 3073 | 19 | 400 | 4.75% | -0.50 pp |
+| epoch 25 | `v2_app_nuisance_only` | 3072, 3073 | 20 | 400 | 5.00% | -0.25 pp |
+| epoch 50 | `baseline` | 3072, 3073 | 25 | 400 | 6.25% | 0.00 pp |
+| epoch 50 | `v1_current` | 3072, 3073 | 22 | 400 | 5.50% | -0.75 pp |
+| epoch 50 | `v2_app_nuisance_only` | 3072, 3073 | 20 | 400 | 5.00% | -1.25 pp |
+
+Decision: baseline is the main reliable PushT result for this repo. `v1_current`
+remains a useful negative result because it produces cleaner latent
+factorization diagnostics, but the current AF objectives do not improve PushT
+planning success under this protocol.
 
 ## Report
 
