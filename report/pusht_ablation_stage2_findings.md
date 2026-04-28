@@ -3,6 +3,8 @@
 Stage 2 was run locally on the RTX 4070 Laptop GPU. Training used source
 commit `39ac7a30`; reports were regenerated with commit `1115bf8`. No rented
 GPU was used.
+AF means Appearance-Factored: the AF variants add an appearance branch and
+appearance-related losses while the planner still uses the dynamics latent.
 
 Each variant was trained with two training seeds, `3072` and `3073`, for `50`
 epochs. Each checkpoint was evaluated with four eval seeds, `42` through `45`,

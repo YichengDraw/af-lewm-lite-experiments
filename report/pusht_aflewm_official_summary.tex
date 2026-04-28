@@ -35,7 +35,7 @@
 
 {\sffamily
 \begin{center}
-  {\Large\bfseries AF-LeWM-lite on Official PushT}\\[0.35em]
+  {\Large\bfseries Appearance-Factored LeWM-lite on Official PushT}\\[0.35em]
   {\large Reliable Rerun and Ablation Summary}\\[0.45em]
   {\small April 26, 2026}
 \end{center}
@@ -44,12 +44,14 @@
 \vspace{0.2em}
 \fcolorbox{accent}{accentlight}{%
   \parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{
-    \textbf{Bottom line.} The Stage 2 reliability check favors \textbf{Baseline LeWM}: \textbf{25/400} successes at epoch 50, versus \textbf{22/400} for \textbf{v1\_current} and \textbf{20/400} for \textbf{v2\_app\_nuisance\_only}. Stage 1 produced useful AF leads, but those leads did not persist after the longer two-seed check.
+    \textbf{Bottom line.} The Stage 2 reliability check favors \textbf{Baseline LeWM}: \textbf{25/400} successes at epoch 50, versus \textbf{22/400} for \textbf{v1\_current} and \textbf{20/400} for \textbf{v2\_app\_nuisance\_only}. Stage 1 produced useful Appearance-Factored leads, but those leads did not persist after the longer two-seed check.
   }
 }
 
 \section*{Architecture and Design Principle}
-AF-LeWM-lite keeps the LeWM planning contract intact. Pixels are encoded by a shared ViT-tiny backbone; the dynamics projection head produces \texttt{emb}, action blocks are encoded separately, and the autoregressive predictor rolls the dynamics latent forward under candidate actions. Planning uses terminal latent distance between predicted dynamics and the goal dynamics latent.
+Appearance-Factored LeWM-lite (AF-LeWM-lite) keeps the LeWM planning contract intact. Here, AF means appearance-factored: the added branch factors appearance information into \texttt{app\_emb}, while planning still uses the dynamics latent \texttt{emb}. The action block encoder is inherited from baseline LeWM.
+
+Pixels are encoded by a shared ViT-tiny backbone; the dynamics projection head produces \texttt{emb}, action blocks are encoded separately, and the autoregressive predictor rolls the dynamics latent forward under candidate actions. Planning uses terminal latent distance between predicted dynamics and the goal dynamics latent.
 
 The AF extension adds an appearance projection head \texttt{app\_emb} used only for representation shaping during training. v1 adds dynamics invariance under appearance augmentation and a cross-covariance penalty between \texttt{emb} and \texttt{app\_emb}. v2 adds sequence-consistent augmentation parameters, stop-gradient invariance, an appearance nuisance head, and a gradient-reversal nuisance head on the dynamics branch.
 

@@ -2,6 +2,8 @@
 
 Stage 1 was run locally on the RTX 4070 Laptop GPU from source commit `5a586929`.
 Each row aggregates two evaluation seeds, `50` PushT episodes per seed.
+AF means Appearance-Factored: the AF variants add an appearance branch and
+appearance-related losses while the planner still uses the dynamics latent.
 
 Pre-Stage-2 gate: after Stage 1, the eval goal synchronization path was hardened
 and AF independence loss was changed from raw covariance to standardized

@@ -1,12 +1,14 @@
-# AF-LeWM-lite PushT Experiments
+# Appearance-Factored LeWM-lite (AF-LeWM-lite) PushT Experiments
 
-This repository is a compact, reliability-checked PushT study for AF-LeWM-lite, a LeWM-style JEPA world model with an appearance-shaping branch.
+This repository is a compact, reliability-checked PushT study for Appearance-Factored LeWM-lite (AF-LeWM-lite), a LeWM-style JEPA world model with an appearance-shaping branch.
+
+Here, `AF` means `Appearance-Factored`: the added branch factors appearance information into `app_emb` while planning still uses the dynamics latent `emb`. The action block encoder is inherited from baseline LeWM.
 
 The repo now focuses on one experiment family:
 
 - `Baseline LeWM`
-- `AF-LeWM-lite v1`: shared encoder, dynamics projection, appearance projection, invariance loss, independence penalty
-- `AF-LeWM-lite v2`: v1 plus sequence-consistent nuisance shaping and a dynamics-side gradient-reversal nuisance head
+- `Appearance-Factored LeWM-lite v1`: shared encoder, dynamics projection, appearance projection, invariance loss, independence penalty
+- `Appearance-Factored LeWM-lite v2`: v1 plus sequence-consistent nuisance shaping and a dynamics-side gradient-reversal nuisance head
 
 Planning uses only the dynamics latent. The appearance branch is a training-time shaping signal.
 

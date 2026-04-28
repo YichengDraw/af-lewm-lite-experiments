@@ -1,8 +1,9 @@
-# PushT AF-LeWM-lite Ablation Protocol
+# PushT Appearance-Factored LeWM-lite Ablation Protocol
 
 ## Goal
 
 Select the structure worth further investment: baseline LeWM, v1, a simplified v2, or full v2.
+AF means Appearance-Factored: the AF variants add an appearance branch and appearance-related losses while the planner still uses the dynamics latent.
 The decision uses planning success as the hard metric and latent diagnostics as mechanism evidence.
 
 ## Stage 1: Structural Screen
