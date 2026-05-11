@@ -253,8 +253,8 @@ def train_variant(
         cmd.extend(
             [
                 "trainer.max_epochs=1",
-                "trainer.limit_train_batches=2",
-                "trainer.limit_val_batches=1",
+                "+trainer.limit_train_batches=2",
+                "+trainer.limit_val_batches=1",
                 "loader.batch_size=2",
                 "loader.num_workers=0",
                 "num_workers=0",
