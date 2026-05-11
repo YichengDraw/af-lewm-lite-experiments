@@ -84,11 +84,17 @@ def require_dataset() -> None:
         raise RuntimeError(f"PushT dataset is too small to be official: {PUSHT_DATASET}")
 
 
-def output_name(variant: Variant, train_seed: int, smoke: bool = False) -> str:
+def output_name(
+    variant: Variant,
+    train_seed: int,
+    smoke: bool = False,
+    run_label: str = "",
+) -> str:
+    label = f"_{run_label}" if run_label else ""
     suffix = f"_s3_seed{train_seed}"
     if smoke:
         suffix += "_smoke"
-    return f"{variant.output_model_name}{suffix}"
+    return f"{variant.output_model_name}{label}{suffix}"
 
 
 def run_dir(name: str) -> Path:
@@ -221,9 +227,13 @@ def train_variant(
     batch_size: int | None,
     target_epoch: int | None = None,
     resume: bool | None = None,
+    run_label: str = "",
+    limit_train_batches: int | None = None,
+    limit_val_batches: int | None = None,
+    log_every_n_steps: int | None = None,
 ) -> bool:
     require_dataset()
-    name = output_name(variant, train_seed, smoke)
+    name = output_name(variant, train_seed, smoke, run_label)
     epoch = target_epoch if target_epoch is not None else (1 if smoke else 100)
     resume_enabled = weights_checkpoint_path(name).exists() if resume is None else resume
     ckpt = checkpoint_path(name, epoch)
@@ -259,6 +269,12 @@ def train_variant(
         )
     if batch_size is not None and not smoke:
         cmd.append(f"loader.batch_size={batch_size}")
+    if limit_train_batches is not None and not smoke:
+        cmd.append(f"+trainer.limit_train_batches={limit_train_batches}")
+    if limit_val_batches is not None and not smoke:
+        cmd.append(f"+trainer.limit_val_batches={limit_val_batches}")
+    if log_every_n_steps is not None and not smoke:
+        cmd.append(f"+trainer.log_every_n_steps={log_every_n_steps}")
     if smoke:
         cmd.extend(
             [
@@ -286,8 +302,9 @@ def eval_variant(
     smoke: bool,
     num_samples: int | None = None,
     n_steps: int | None = None,
+    run_label: str = "",
 ) -> bool:
-    name = output_name(variant, train_seed, smoke)
+    name = output_name(variant, train_seed, smoke, run_label)
     ckpt = checkpoint_path(name, epoch)
     if not ckpt.exists() and not dry_run:
         print(f"SKIP eval {name} epoch={epoch}: missing {ckpt}")
@@ -408,6 +425,7 @@ def write_report(
     epochs: list[int],
     *,
     smoke: bool,
+    run_label: str = "",
 ) -> None:
     REPORT_DIR.mkdir(exist_ok=True)
     val_num_eval = 2 if smoke else 100
@@ -415,7 +433,7 @@ def write_report(
     rows = []
     for variant in variants:
         for seed in train_seeds:
-            name = output_name(variant, seed, smoke)
+            name = output_name(variant, seed, smoke, run_label)
             best_epoch, best_val = _best_epoch_for(name, epochs, val_num_eval)
             test = None
             if best_epoch is not None:
@@ -434,7 +452,12 @@ def write_report(
             row.update(latest_val_loss(name))
             rows.append(row)
 
-    csv_path = REPORT_DIR / ("pusht_stage3_smoke_summary.csv" if smoke else "pusht_stage3_v1_summary.csv")
+    label = f"_{run_label}" if run_label else ""
+    csv_path = REPORT_DIR / (
+        "pusht_stage3_smoke_summary.csv"
+        if smoke
+        else f"pusht_stage3_v1{label}_summary.csv"
+    )
     json_path = csv_path.with_suffix(".json")
     json_path.write_text(json.dumps(rows, indent=2, sort_keys=True))
     fieldnames = sorted({key for row in rows for key in row})
@@ -446,8 +469,8 @@ def write_report(
     if {"baseline", "v1_current"}.issubset({variant.variant_id for variant in variants}):
         paired_rows = []
         for seed in train_seeds:
-            baseline_name = output_name(VARIANTS["baseline"], seed, smoke)
-            v1_name = output_name(VARIANTS["v1_current"], seed, smoke)
+            baseline_name = output_name(VARIANTS["baseline"], seed, smoke, run_label)
+            v1_name = output_name(VARIANTS["v1_current"], seed, smoke, run_label)
             baseline_best, _ = _best_epoch_for(baseline_name, epochs, val_num_eval)
             v1_best, _ = _best_epoch_for(v1_name, epochs, val_num_eval)
             if baseline_best is None or v1_best is None:
@@ -473,7 +496,9 @@ def write_report(
                 }
             )
         paired_csv = REPORT_DIR / (
-            "pusht_stage3_smoke_paired.csv" if smoke else "pusht_stage3_v1_paired.csv"
+            "pusht_stage3_smoke_paired.csv"
+            if smoke
+            else f"pusht_stage3_v1{label}_paired.csv"
         )
         paired_json = paired_csv.with_suffix(".json")
         paired_json.write_text(json.dumps(paired_rows, indent=2, sort_keys=True))
@@ -486,13 +511,20 @@ def write_report(
     print(f"Wrote {csv_path}")
 
 
-def status(variants: list[Variant], train_seeds: list[int], epochs: list[int], *, smoke: bool) -> None:
+def status(
+    variants: list[Variant],
+    train_seeds: list[int],
+    epochs: list[int],
+    *,
+    smoke: bool,
+    run_label: str = "",
+) -> None:
     print(f"STABLEWM_HOME={STABLEWM_HOME}")
     print(f"dataset={PUSHT_DATASET} exists={PUSHT_DATASET.exists()}")
     val_num_eval = 2 if smoke else 100
     for variant in variants:
         for seed in train_seeds:
-            name = output_name(variant, seed, smoke)
+            name = output_name(variant, seed, smoke, run_label)
             ckpts = [epoch for epoch in epochs if checkpoint_path(name, epoch).exists()]
             evals = [
                 epoch
@@ -525,12 +557,16 @@ def run_cycle(
     val_manifest_kind: str,
     num_samples: int | None,
     n_steps: int | None,
+    run_label: str = "",
+    limit_train_batches: int | None = None,
+    limit_val_batches: int | None = None,
+    log_every_n_steps: int | None = None,
 ) -> bool:
     val_manifest = manifests["val_large" if val_manifest_kind == "large" else "val_small"]
     sorted_epochs = sorted(epochs)
     for seed in train_seeds:
         for variant in variants:
-            name = output_name(variant, seed, smoke)
+            name = output_name(variant, seed, smoke, run_label)
             for epoch_idx, epoch in enumerate(sorted_epochs):
                 resume_training = weights_checkpoint_path(name).exists() or (
                     dry_run and epoch_idx > 0
@@ -545,6 +581,10 @@ def run_cycle(
                     batch_size=batch_size,
                     target_epoch=epoch,
                     resume=resume_training,
+                    run_label=run_label,
+                    limit_train_batches=limit_train_batches,
+                    limit_val_batches=limit_val_batches,
+                    log_every_n_steps=log_every_n_steps,
                 )
                 if not ok:
                     return False
@@ -559,11 +599,12 @@ def run_cycle(
                     smoke=smoke,
                     num_samples=num_samples,
                     n_steps=n_steps,
+                    run_label=run_label,
                 )
                 if not ok:
                     return False
     if not dry_run:
-        write_report(variants, train_seeds, epochs, smoke=smoke)
+        write_report(variants, train_seeds, epochs, smoke=smoke, run_label=run_label)
     return True
 
 
@@ -582,6 +623,10 @@ def main() -> None:
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--wandb", action="store_true")
     parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--run-label", default="")
+    parser.add_argument("--limit-train-batches", type=int, default=None)
+    parser.add_argument("--limit-val-batches", type=int, default=None)
+    parser.add_argument("--log-every-n-steps", type=int, default=None)
     parser.add_argument("--num-samples", type=int, default=None)
     parser.add_argument("--n-steps", type=int, default=None)
     parser.add_argument("--val-manifest", choices=["small", "large"], default="small")
@@ -591,7 +636,7 @@ def main() -> None:
     epochs = parse_epochs(args.epochs, args.smoke)
 
     if args.mode == "status":
-        status(variants, args.train_seeds, epochs, smoke=args.smoke)
+        status(variants, args.train_seeds, epochs, smoke=args.smoke, run_label=args.run_label)
         return
     if args.mode in ("manifest", "all", "eval", "test", "cycle"):
         manifests = ensure_manifests(force=args.force, smoke=args.smoke)
@@ -615,6 +660,10 @@ def main() -> None:
             val_manifest_kind=args.val_manifest,
             num_samples=args.num_samples,
             n_steps=args.n_steps,
+            run_label=args.run_label,
+            limit_train_batches=args.limit_train_batches,
+            limit_val_batches=args.limit_val_batches,
+            log_every_n_steps=args.log_every_n_steps,
         )
         if not ok:
             sys.exit(1)
@@ -630,6 +679,10 @@ def main() -> None:
                     smoke=args.smoke,
                     wandb=args.wandb and not args.smoke,
                     batch_size=args.batch_size,
+                    run_label=args.run_label,
+                    limit_train_batches=args.limit_train_batches,
+                    limit_val_batches=args.limit_val_batches,
+                    log_every_n_steps=args.log_every_n_steps,
                 ) and ok
                 if not ok:
                     sys.exit(1)
@@ -649,6 +702,7 @@ def main() -> None:
                         smoke=args.smoke,
                         num_samples=args.num_samples,
                         n_steps=args.n_steps,
+                        run_label=args.run_label,
                     ) and ok
                     if not ok:
                         sys.exit(1)
@@ -667,6 +721,7 @@ def main() -> None:
                         smoke=args.smoke,
                         num_samples=args.num_samples,
                         n_steps=args.n_steps,
+                        run_label=args.run_label,
                     ) and ok
                     if not ok:
                         sys.exit(1)
@@ -674,7 +729,7 @@ def main() -> None:
         if args.dry_run:
             print("DRY RUN: would write Stage 3 report")
         else:
-            write_report(variants, args.train_seeds, epochs, smoke=args.smoke)
+            write_report(variants, args.train_seeds, epochs, smoke=args.smoke, run_label=args.run_label)
 
 
 if __name__ == "__main__":

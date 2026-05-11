@@ -25,6 +25,18 @@ These AF-specific values define the v1 architecture for the primary comparison. 
 
 On the RTX 5090 32 GB host, AF-LeWM v1 does not fit batch size 128 because it performs the clean, aug_a, and aug_b encoder passes in the same training step. If the primary run uses the 32 GB host, both baseline and v1 are run with the same fallback batch size 96. The report must mark that run as official-aligned except for the matched batch-size fallback.
 
+A full official 100-epoch pass over all 1.58M train clips is not executable as a full 5-seed baseline/v1 study on a single RTX 5090 in a reasonable wall-clock budget. The executable 5090 profile is therefore:
+
+- run label: `b96k1000e50`
+- train seeds: `3072` through `3076`
+- variants: baseline and v1
+- max epoch: `50`
+- train batches per epoch: `1000`
+- validation batches per epoch: `50`
+- closed-loop validation: every `5` epochs on the locked val100 manifest
+
+This profile keeps the official model, optimizer, learning rate, precision, data split, and planner eval, while making the training budget explicit and finishable. It is a budgeted stability comparison, not a claim that the official full-data 100-epoch LeWM result has been reproduced.
+
 The default W&B destination is entity `yicheng132024-southern-university-of-science-technology`, project `af-lewm-lite-stage3`. These can be overridden with `WANDB_ENTITY` and `WANDB_PROJECT`.
 
 ## Splits And Manifests
