@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -303,6 +304,7 @@ def eval_variant(
     num_samples: int | None = None,
     n_steps: int | None = None,
     run_label: str = "",
+    retries: int = 0,
 ) -> bool:
     name = output_name(variant, train_seed, smoke, run_label)
     ckpt = checkpoint_path(name, epoch)
@@ -331,7 +333,19 @@ def eval_variant(
             cmd.append(f"solver.num_samples={num_samples}")
         if n_steps is not None:
             cmd.append(f"solver.n_steps={n_steps}")
-    return run_command(cmd, dry_run=dry_run) == 0
+    for attempt in range(retries + 1):
+        if run_command(cmd, dry_run=dry_run) == 0:
+            return True
+        if attempt < retries:
+            delay = 30 * (attempt + 1)
+            print(
+                f"RETRY eval {name} {split} epoch={epoch}: "
+                f"attempt {attempt + 1}/{retries} failed, sleeping {delay}s",
+                flush=True,
+            )
+            if not dry_run:
+                time.sleep(delay)
+    return False
 
 
 def parse_eval_result(path: Path) -> dict[str, Any] | None:
@@ -561,6 +575,7 @@ def run_cycle(
     limit_train_batches: int | None = None,
     limit_val_batches: int | None = None,
     log_every_n_steps: int | None = None,
+    eval_retries: int = 0,
 ) -> bool:
     val_manifest = manifests["val_large" if val_manifest_kind == "large" else "val_small"]
     sorted_epochs = sorted(epochs)
@@ -600,6 +615,7 @@ def run_cycle(
                     num_samples=num_samples,
                     n_steps=n_steps,
                     run_label=run_label,
+                    retries=eval_retries,
                 )
                 if not ok:
                     return False
@@ -627,6 +643,7 @@ def main() -> None:
     parser.add_argument("--limit-train-batches", type=int, default=None)
     parser.add_argument("--limit-val-batches", type=int, default=None)
     parser.add_argument("--log-every-n-steps", type=int, default=None)
+    parser.add_argument("--eval-retries", type=int, default=2)
     parser.add_argument("--num-samples", type=int, default=None)
     parser.add_argument("--n-steps", type=int, default=None)
     parser.add_argument("--val-manifest", choices=["small", "large"], default="small")
@@ -664,6 +681,7 @@ def main() -> None:
             limit_train_batches=args.limit_train_batches,
             limit_val_batches=args.limit_val_batches,
             log_every_n_steps=args.log_every_n_steps,
+            eval_retries=args.eval_retries,
         )
         if not ok:
             sys.exit(1)
@@ -703,6 +721,7 @@ def main() -> None:
                         num_samples=args.num_samples,
                         n_steps=args.n_steps,
                         run_label=args.run_label,
+                        retries=args.eval_retries,
                     ) and ok
                     if not ok:
                         sys.exit(1)
@@ -722,6 +741,7 @@ def main() -> None:
                         num_samples=args.num_samples,
                         n_steps=args.n_steps,
                         run_label=args.run_label,
+                        retries=args.eval_retries,
                     ) and ok
                     if not ok:
                         sys.exit(1)
