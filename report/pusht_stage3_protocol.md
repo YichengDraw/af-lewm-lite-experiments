@@ -25,6 +25,8 @@ These AF-specific values define the v1 architecture for the primary comparison. 
 
 On the RTX 5090 32 GB host, AF-LeWM v1 does not fit batch size 128 because it performs the clean, aug_a, and aug_b encoder passes in the same training step. If the primary run uses the 32 GB host, both baseline and v1 are run with the same fallback batch size 96. The report must mark that run as official-aligned except for the matched batch-size fallback.
 
+The default W&B destination is entity `yicheng132024-southern-university-of-science-technology`, project `af-lewm-lite-stage3`. These can be overridden with `WANDB_ENTITY` and `WANDB_PROJECT`.
+
 ## Splits And Manifests
 
 All runs use the same episode-disjoint split:

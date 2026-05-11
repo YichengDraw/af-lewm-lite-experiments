@@ -41,8 +41,8 @@ optimizer:
 wandb:
   enabled: True
   config:
-    entity: lewm
-    project: lewm
+    entity: ${oc.env:WANDB_ENTITY,yicheng132024-southern-university-of-science-technology}
+    project: ${oc.env:WANDB_PROJECT,af-lewm-lite-stage3}
     name: ${output_model_name}
     id: ${subdir}
     resume: allow
