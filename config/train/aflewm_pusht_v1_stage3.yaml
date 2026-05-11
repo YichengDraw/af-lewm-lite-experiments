@@ -15,6 +15,7 @@ img_size: 224
 patch_size: 14
 encoder_scale: tiny
 dump_object: True
+save_weights: True
 object_epoch_interval: 5
 resume: False
 

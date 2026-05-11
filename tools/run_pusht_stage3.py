@@ -103,6 +103,10 @@ def checkpoint_path(name: str, epoch: int) -> Path:
     return STABLEWM_HOME / f"{policy_path(name, epoch)}_object.ckpt"
 
 
+def weights_checkpoint_path(name: str) -> Path:
+    return run_dir(name) / f"{name}_weights.ckpt"
+
+
 def eval_filename(split: str, epoch: int, num_eval: int) -> str:
     return f"stage3_{split}_epoch{epoch}_num{num_eval}.txt"
 
@@ -215,10 +219,13 @@ def train_variant(
     smoke: bool,
     wandb: bool,
     batch_size: int | None,
+    target_epoch: int | None = None,
+    resume: bool | None = None,
 ) -> bool:
     require_dataset()
     name = output_name(variant, train_seed, smoke)
-    epoch = 1 if smoke else 100
+    epoch = target_epoch if target_epoch is not None else (1 if smoke else 100)
+    resume_enabled = weights_checkpoint_path(name).exists() if resume is None else resume
     ckpt = checkpoint_path(name, epoch)
     if ckpt.exists() and not force:
         print(f"SKIP train {name}: checkpoint exists {ckpt}")
@@ -237,6 +244,9 @@ def train_variant(
         "val_split=0.1",
         "test_split=0.1",
         "object_epoch_interval=5",
+        "save_weights=True",
+        f"trainer.max_epochs={epoch}",
+        f"resume={str(resume_enabled)}",
         f"wandb.enabled={str(wandb and not smoke)}",
     ]
     if wandb and not smoke:
@@ -252,7 +262,6 @@ def train_variant(
     if smoke:
         cmd.extend(
             [
-                "trainer.max_epochs=1",
                 "+trainer.limit_train_batches=2",
                 "+trainer.limit_val_batches=1",
                 "loader.batch_size=2",
@@ -490,7 +499,10 @@ def status(variants: list[Variant], train_seeds: list[int], epochs: list[int], *
                 for epoch in epochs
                 if (run_dir(name) / eval_filename("val", epoch, val_num_eval)).exists()
             ]
-            print(f"{name}: ckpts={ckpts[-5:]} evals={evals[-5:]}")
+            print(
+                f"{name}: weights={weights_checkpoint_path(name).exists()} "
+                f"ckpts={ckpts[-5:]} evals={evals[-5:]}"
+            )
 
 
 def parse_epochs(values: list[int] | None, smoke: bool) -> list[int]:
@@ -499,9 +511,69 @@ def parse_epochs(values: list[int] | None, smoke: bool) -> list[int]:
     return values if values else list(DEFAULT_EVAL_EPOCHS)
 
 
+def run_cycle(
+    variants: list[Variant],
+    train_seeds: list[int],
+    epochs: list[int],
+    *,
+    manifests: dict[str, Path],
+    dry_run: bool,
+    force: bool,
+    smoke: bool,
+    wandb: bool,
+    batch_size: int | None,
+    val_manifest_kind: str,
+    num_samples: int | None,
+    n_steps: int | None,
+) -> bool:
+    val_manifest = manifests["val_large" if val_manifest_kind == "large" else "val_small"]
+    sorted_epochs = sorted(epochs)
+    for seed in train_seeds:
+        for variant in variants:
+            name = output_name(variant, seed, smoke)
+            for epoch_idx, epoch in enumerate(sorted_epochs):
+                resume_training = weights_checkpoint_path(name).exists() or (
+                    dry_run and epoch_idx > 0
+                )
+                ok = train_variant(
+                    variant,
+                    seed,
+                    dry_run=dry_run,
+                    force=force,
+                    smoke=smoke,
+                    wandb=wandb and not smoke,
+                    batch_size=batch_size,
+                    target_epoch=epoch,
+                    resume=resume_training,
+                )
+                if not ok:
+                    return False
+                ok = eval_variant(
+                    variant,
+                    seed,
+                    split="val",
+                    manifest=val_manifest,
+                    epoch=epoch,
+                    dry_run=dry_run,
+                    force=force,
+                    smoke=smoke,
+                    num_samples=num_samples,
+                    n_steps=n_steps,
+                )
+                if not ok:
+                    return False
+    if not dry_run:
+        write_report(variants, train_seeds, epochs, smoke=smoke)
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run official-aligned PushT Stage 3.")
-    parser.add_argument("--mode", choices=["manifest", "train", "eval", "test", "report", "status", "all"], default="status")
+    parser.add_argument(
+        "--mode",
+        choices=["manifest", "train", "eval", "test", "report", "status", "cycle", "all"],
+        default="status",
+    )
     parser.add_argument("--ids", nargs="*", default=None)
     parser.add_argument("--train-seeds", type=int, nargs="*", default=list(DEFAULT_TRAIN_SEEDS))
     parser.add_argument("--epochs", type=int, nargs="*", default=None)
@@ -521,7 +593,7 @@ def main() -> None:
     if args.mode == "status":
         status(variants, args.train_seeds, epochs, smoke=args.smoke)
         return
-    if args.mode in ("manifest", "all", "eval", "test"):
+    if args.mode in ("manifest", "all", "eval", "test", "cycle"):
         manifests = ensure_manifests(force=args.force, smoke=args.smoke)
     else:
         manifests = {}
@@ -529,6 +601,24 @@ def main() -> None:
         return
 
     ok = True
+    if args.mode == "cycle":
+        ok = run_cycle(
+            variants,
+            args.train_seeds,
+            epochs,
+            manifests=manifests,
+            dry_run=args.dry_run,
+            force=args.force,
+            smoke=args.smoke,
+            wandb=args.wandb,
+            batch_size=args.batch_size,
+            val_manifest_kind=args.val_manifest,
+            num_samples=args.num_samples,
+            n_steps=args.n_steps,
+        )
+        if not ok:
+            sys.exit(1)
+        return
     if args.mode in ("train", "all"):
         for seed in args.train_seeds:
             for variant in variants:

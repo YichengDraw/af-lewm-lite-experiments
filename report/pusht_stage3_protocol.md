@@ -23,6 +23,8 @@ AF-LeWM v1 keeps the same settings and adds only the appearance-factored branch:
 
 These AF-specific values define the v1 architecture for the primary comparison. They are not tuned during Stage 3.
 
+On the RTX 5090 32 GB host, AF-LeWM v1 does not fit batch size 128 because it performs the clean, aug_a, and aug_b encoder passes in the same training step. If the primary run uses the 32 GB host, both baseline and v1 are run with the same fallback batch size 96. The report must mark that run as official-aligned except for the matched batch-size fallback.
+
 ## Splits And Manifests
 
 All runs use the same episode-disjoint split:
@@ -41,7 +43,7 @@ Every model and checkpoint evaluated against a manifest must use exactly the sam
 
 ## Checkpoint And Evaluation Schedule
 
-Training saves object checkpoints every 5 epochs. Closed-loop PushT validation also runs every 5 epochs. This is denser than the previous 25/50-only schedule because the current question is training stability, not only final success.
+Training saves object checkpoints every 5 epochs. The runner trains in resumable 5-epoch chunks, runs closed-loop PushT validation after each chunk, then resumes from the Lightning weights checkpoint. This is denser than the previous 25/50-only schedule because the current question is training stability, not only final success.
 
 Final test evaluation is run once per model/seed using the checkpoint selected by validation closed-loop success. Validation loss is diagnostic; closed-loop success is the selection metric.
 

@@ -76,3 +76,27 @@ class ModelObjectCallBack(Callback):
                 tmp_path.unlink()
             print(f"Error saving model object: {e}")
             raise
+
+
+class WeightsCheckpointCallback(Callback):
+    """Save a resumable Lightning checkpoint at a stable path after each epoch."""
+
+    def __init__(self, path):
+        super().__init__()
+        self.path = Path(path)
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        super().on_train_epoch_end(trainer, pl_module)
+        if not trainer.is_global_zero:
+            return
+
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
+        try:
+            trainer.save_checkpoint(tmp_path)
+            tmp_path.replace(self.path)
+        except Exception as e:
+            if tmp_path.exists():
+                tmp_path.unlink()
+            print(f"Error saving training checkpoint: {e}")
+            raise

@@ -32,7 +32,12 @@ from omegaconf import OmegaConf, open_dict
 
 from jepa import JEPA
 from module import ARPredictor, Embedder, MLP, SIGReg
-from utils import get_column_normalizer, get_img_preprocessor, ModelObjectCallBack
+from utils import (
+    get_column_normalizer,
+    get_img_preprocessor,
+    ModelObjectCallBack,
+    WeightsCheckpointCallback,
+)
 
 
 class _GradientReversal(torch.autograd.Function):
@@ -587,6 +592,8 @@ def run(cfg):
         json.dump(split_metadata, f, indent=2)
 
     callbacks = []
+    if cfg.get("save_weights", True):
+        callbacks.append(WeightsCheckpointCallback(weights_ckpt_path))
     if cfg.get("dump_object", True):
         object_epoch_interval = int(
             cfg.get("object_epoch_interval", int(cfg.trainer.max_epochs) + 1)
@@ -652,6 +659,8 @@ def run(cfg):
                 "optimizer_weight_decay": float(cfg.optimizer.weight_decay),
                 "model_params": int(total_params),
                 "train_elapsed_seconds": train_elapsed_seconds,
+                "weights_checkpoint_path": str(weights_ckpt_path),
+                "save_weights": bool(cfg.get("save_weights", True)),
                 **wandb_metadata,
             },
             f,
