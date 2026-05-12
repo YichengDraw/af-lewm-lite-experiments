@@ -373,6 +373,18 @@ def parse_eval_result(path: Path) -> dict[str, Any] | None:
     }
 
 
+def val_num_eval_for_manifest(*, smoke: bool, val_manifest_kind: str) -> int:
+    if smoke:
+        return 2
+    return 500 if val_manifest_kind == "large" else 100
+
+
+def terminal_epoch_for_run(epochs: list[int], *, smoke: bool) -> int:
+    if smoke:
+        return 1
+    return max(epochs) if epochs else 100
+
+
 def latest_val_loss(name: str) -> dict[str, str]:
     path = run_dir(name) / "metrics" / "metrics.csv"
     if not path.exists():
@@ -440,10 +452,15 @@ def write_report(
     *,
     smoke: bool,
     run_label: str = "",
+    val_manifest_kind: str = "small",
 ) -> None:
     REPORT_DIR.mkdir(exist_ok=True)
-    val_num_eval = 2 if smoke else 100
+    val_num_eval = val_num_eval_for_manifest(
+        smoke=smoke,
+        val_manifest_kind=val_manifest_kind,
+    )
     test_num_eval = 2 if smoke else 1000
+    final_epoch = terminal_epoch_for_run(epochs, smoke=smoke)
     rows = []
     for variant in variants:
         for seed in train_seeds:
@@ -461,7 +478,7 @@ def write_report(
                 "test_success_percent": test["success_percent"] if test else "",
                 "test_successes": test["successes"] if test else "",
                 "test_episodes": test["episodes"] if test else "",
-                "final_ckpt_exists": checkpoint_path(name, 1 if smoke else 100).exists(),
+                "final_ckpt_exists": checkpoint_path(name, final_epoch).exists(),
             }
             row.update(latest_val_loss(name))
             rows.append(row)
@@ -532,10 +549,14 @@ def status(
     *,
     smoke: bool,
     run_label: str = "",
+    val_manifest_kind: str = "small",
 ) -> None:
     print(f"STABLEWM_HOME={STABLEWM_HOME}")
     print(f"dataset={PUSHT_DATASET} exists={PUSHT_DATASET.exists()}")
-    val_num_eval = 2 if smoke else 100
+    val_num_eval = val_num_eval_for_manifest(
+        smoke=smoke,
+        val_manifest_kind=val_manifest_kind,
+    )
     for variant in variants:
         for seed in train_seeds:
             name = output_name(variant, seed, smoke, run_label)
@@ -555,6 +576,53 @@ def parse_epochs(values: list[int] | None, smoke: bool) -> list[int]:
     if smoke:
         return [1]
     return values if values else list(DEFAULT_EVAL_EPOCHS)
+
+
+def run_selected_test_evals(
+    variants: list[Variant],
+    train_seeds: list[int],
+    epochs: list[int],
+    *,
+    manifests: dict[str, Path],
+    dry_run: bool,
+    force: bool,
+    smoke: bool,
+    num_samples: int | None,
+    n_steps: int | None,
+    run_label: str = "",
+    val_manifest_kind: str = "small",
+    eval_retries: int = 0,
+) -> bool:
+    val_num_eval = val_num_eval_for_manifest(
+        smoke=smoke,
+        val_manifest_kind=val_manifest_kind,
+    )
+    test_manifest = manifests["test"]
+    fallback_epoch = terminal_epoch_for_run(epochs, smoke=smoke)
+    for seed in train_seeds:
+        for variant in variants:
+            name = output_name(variant, seed, smoke, run_label)
+            best_epoch = fallback_epoch if dry_run else _best_epoch_for(name, epochs, val_num_eval)[0]
+            if best_epoch is None:
+                print(f"SKIP selected test {name}: no validation-selected checkpoint")
+                return False
+            ok = eval_variant(
+                variant,
+                seed,
+                split="test",
+                manifest=test_manifest,
+                epoch=best_epoch,
+                dry_run=dry_run,
+                force=force,
+                smoke=smoke,
+                num_samples=num_samples,
+                n_steps=n_steps,
+                run_label=run_label,
+                retries=eval_retries,
+            )
+            if not ok:
+                return False
+    return True
 
 
 def run_cycle(
@@ -620,7 +688,30 @@ def run_cycle(
                 if not ok:
                     return False
     if not dry_run:
-        write_report(variants, train_seeds, epochs, smoke=smoke, run_label=run_label)
+        ok = run_selected_test_evals(
+            variants,
+            train_seeds,
+            epochs,
+            manifests=manifests,
+            dry_run=dry_run,
+            force=force,
+            smoke=smoke,
+            num_samples=num_samples,
+            n_steps=n_steps,
+            run_label=run_label,
+            val_manifest_kind=val_manifest_kind,
+            eval_retries=eval_retries,
+        )
+        if not ok:
+            return False
+        write_report(
+            variants,
+            train_seeds,
+            epochs,
+            smoke=smoke,
+            run_label=run_label,
+            val_manifest_kind=val_manifest_kind,
+        )
     return True
 
 
@@ -653,7 +744,14 @@ def main() -> None:
     epochs = parse_epochs(args.epochs, args.smoke)
 
     if args.mode == "status":
-        status(variants, args.train_seeds, epochs, smoke=args.smoke, run_label=args.run_label)
+        status(
+            variants,
+            args.train_seeds,
+            epochs,
+            smoke=args.smoke,
+            run_label=args.run_label,
+            val_manifest_kind=args.val_manifest,
+        )
         return
     if args.mode in ("manifest", "all", "eval", "test", "cycle"):
         manifests = ensure_manifests(force=args.force, smoke=args.smoke)
@@ -687,6 +785,7 @@ def main() -> None:
             sys.exit(1)
         return
     if args.mode in ("train", "all"):
+        target_epoch = terminal_epoch_for_run(epochs, smoke=args.smoke)
         for seed in args.train_seeds:
             for variant in variants:
                 ok = train_variant(
@@ -697,6 +796,7 @@ def main() -> None:
                     smoke=args.smoke,
                     wandb=args.wandb and not args.smoke,
                     batch_size=args.batch_size,
+                    target_epoch=target_epoch,
                     run_label=args.run_label,
                     limit_train_batches=args.limit_train_batches,
                     limit_val_batches=args.limit_val_batches,
@@ -725,6 +825,23 @@ def main() -> None:
                     ) and ok
                     if not ok:
                         sys.exit(1)
+    if args.mode in ("all",) and not args.dry_run:
+        ok = run_selected_test_evals(
+            variants,
+            args.train_seeds,
+            epochs,
+            manifests=manifests,
+            dry_run=args.dry_run,
+            force=args.force,
+            smoke=args.smoke,
+            num_samples=args.num_samples,
+            n_steps=args.n_steps,
+            run_label=args.run_label,
+            val_manifest_kind=args.val_manifest,
+            eval_retries=args.eval_retries,
+        ) and ok
+        if not ok:
+            sys.exit(1)
     if args.mode in ("test",):
         for seed in args.train_seeds:
             for variant in variants:
@@ -749,7 +866,14 @@ def main() -> None:
         if args.dry_run:
             print("DRY RUN: would write Stage 3 report")
         else:
-            write_report(variants, args.train_seeds, epochs, smoke=args.smoke, run_label=args.run_label)
+            write_report(
+                variants,
+                args.train_seeds,
+                epochs,
+                smoke=args.smoke,
+                run_label=args.run_label,
+                val_manifest_kind=args.val_manifest,
+            )
 
 
 if __name__ == "__main__":
