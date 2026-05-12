@@ -714,10 +714,30 @@ def write_report(
     )
     test_num_eval = 2 if smoke else 1000
     final_epoch = terminal_epoch_for_run(epochs, smoke=smoke)
+    label = f"_{run_label}" if run_label else ""
+    report_stem = "pusht_stage3_smoke" if smoke else f"pusht_stage3_v1{label}"
+
+    val_curve_rows = []
     rows = []
     for variant in variants:
         for seed in train_seeds:
             name = output_name(variant, seed, smoke, run_label)
+            for epoch in epochs:
+                val_result = parse_eval_result(run_dir(name) / eval_filename("val", epoch, val_num_eval))
+                val_curve_rows.append(
+                    {
+                        "variant_id": variant.variant_id,
+                        "train_seed": seed,
+                        "output_model_name": name,
+                        "epoch": epoch,
+                        "val_success_percent": val_result["success_percent"] if val_result else "",
+                        "val_successes": val_result["successes"] if val_result else "",
+                        "val_episodes": val_result["episodes"] if val_result else "",
+                        "normalizer_scope": val_result["normalizer_scope"] if val_result else "",
+                        "solver_batch_size": val_result["solver_batch_size"] if val_result else "",
+                        "evaluation_time_seconds": val_result["evaluation_time_seconds"] if val_result else "",
+                    }
+                )
             best_epoch, best_val = _best_epoch_for(name, epochs, val_num_eval)
             test = None
             if best_epoch is not None:
@@ -736,12 +756,16 @@ def write_report(
             row.update(latest_val_loss(name))
             rows.append(row)
 
-    label = f"_{run_label}" if run_label else ""
-    csv_path = REPORT_DIR / (
-        "pusht_stage3_smoke_summary.csv"
-        if smoke
-        else f"pusht_stage3_v1{label}_summary.csv"
-    )
+    curve_csv_path = REPORT_DIR / f"{report_stem}_val_curve.csv"
+    curve_json_path = curve_csv_path.with_suffix(".json")
+    curve_json_path.write_text(json.dumps(val_curve_rows, indent=2, sort_keys=True))
+    curve_fieldnames = sorted({key for row in val_curve_rows for key in row})
+    with curve_csv_path.open("w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=curve_fieldnames)
+        writer.writeheader()
+        writer.writerows(val_curve_rows)
+
+    csv_path = REPORT_DIR / f"{report_stem}_summary.csv"
     json_path = csv_path.with_suffix(".json")
     json_path.write_text(json.dumps(rows, indent=2, sort_keys=True))
     fieldnames = sorted({key for row in rows for key in row})
@@ -793,6 +817,8 @@ def write_report(
                 writer.writerows(paired_rows)
     print(f"Wrote {json_path}")
     print(f"Wrote {csv_path}")
+    print(f"Wrote {curve_json_path}")
+    print(f"Wrote {curve_csv_path}")
 
 
 def status(

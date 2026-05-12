@@ -74,8 +74,13 @@ class RunPushtStage3Tests(unittest.TestCase):
             rows = json.loads(
                 (report_dir / "pusht_stage3_v1_summary.json").read_text(encoding="utf-8")
             )
+            curve_rows = json.loads(
+                (report_dir / "pusht_stage3_v1_val_curve.json").read_text(encoding="utf-8")
+            )
             self.assertEqual(rows[0]["best_val_epoch"], 50)
             self.assertTrue(rows[0]["final_ckpt_exists"])
+            self.assertEqual(curve_rows[-1]["epoch"], 50)
+            self.assertEqual(curve_rows[-1]["val_success_percent"], 50.0)
 
     def test_main_train_mode_uses_terminal_epoch(self):
         from tempfile import TemporaryDirectory
