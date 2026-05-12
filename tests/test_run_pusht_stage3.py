@@ -150,6 +150,81 @@ class RunPushtStage3Tests(unittest.TestCase):
             self.assertTrue(ok)
             self.assertIn("solver.batch_size=100", output.getvalue())
 
+    def test_large_test_eval_is_chunked_and_aggregated(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory(prefix="stage3-chunk-test-") as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            module = load_stage3_module(tmp_path)
+            variant = module.VARIANTS["baseline"]
+            name = module.output_name(variant, 3072, False, "")
+            run_dir = tmp_path / "runs" / "pusht_expert_train" / name
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / f"{name}_epoch_50_object.ckpt").write_text(
+                "ckpt",
+                encoding="utf-8",
+            )
+            rows = [
+                {"row_index": 10 + idx, "episode_idx": 100 + idx, "start_step": 20 + idx}
+                for idx in range(5)
+            ]
+            manifest_dir = tmp_path / "manifests"
+            manifest_dir.mkdir(parents=True, exist_ok=True)
+            manifest = manifest_dir / "test_n5.json"
+            manifest.write_text(
+                json.dumps({"num_eval": 5, "split": "test", "seed": 9200, "rows": rows}),
+                encoding="utf-8",
+            )
+
+            def fake_run_command(cmd, *, dry_run):
+                manifest_arg = next(item for item in cmd if item.startswith("eval.manifest_path="))
+                filename_arg = next(item for item in cmd if item.startswith("output.filename="))
+                chunk_manifest = Path(manifest_arg.split("=", 1)[1])
+                filename = filename_arg.split("=", 1)[1]
+                chunk_rows = json.loads(chunk_manifest.read_text(encoding="utf-8"))["rows"]
+                flags = [row["row_index"] % 2 == 0 for row in chunk_rows]
+                metrics = {
+                    "success_rate": 100.0 * sum(flags) / len(flags),
+                    "episode_successes": flags,
+                    "seeds": list(range(len(flags))),
+                    "eval_row_indices": [row["row_index"] for row in chunk_rows],
+                    "eval_episodes": [row["episode_idx"] for row in chunk_rows],
+                    "eval_start_idx": [row["start_step"] for row in chunk_rows],
+                    "normalizer_metadata": {"normalizer_scope": "train_episodes_from_split_metadata"},
+                    "eval_manifest": {"split": "test", "size": len(chunk_rows)},
+                    "solver_batch_size": 50,
+                }
+                (run_dir / filename).write_text(
+                    "metrics_json: " + json.dumps(metrics) + "\n"
+                    "evaluation_time: 2.5 seconds\n",
+                    encoding="utf-8",
+                )
+                return 0
+
+            with mock.patch.object(
+                module,
+                "MANIFEST_DIR",
+                manifest_dir,
+            ), mock.patch.object(module, "run_command", side_effect=fake_run_command):
+                ok = module.eval_variant(
+                    variant,
+                    3072,
+                    split="test",
+                    manifest=manifest,
+                    epoch=50,
+                    dry_run=False,
+                    force=False,
+                    smoke=False,
+                    test_chunk_size=2,
+                )
+
+            self.assertTrue(ok)
+            final_result = module.parse_eval_result(run_dir / "stage3_test_epoch50_num5.txt")
+            self.assertEqual(final_result["episodes"], 5)
+            self.assertEqual(final_result["successes"], 3)
+            self.assertEqual(final_result["success_percent"], 60.0)
+            self.assertEqual(final_result["eval_row_indices"], [10, 11, 12, 13, 14])
+
     def test_selected_test_eval_uses_best_val_epoch(self):
         from tempfile import TemporaryDirectory
 

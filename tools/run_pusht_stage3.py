@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import os
@@ -122,6 +123,11 @@ def manifest_path(split: str, num_eval: int, seed: int) -> Path:
     return MANIFEST_DIR / f"pusht_stage3_{split}_n{num_eval}_seed{seed}.json"
 
 
+def _sha256_json(value: Any) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
 def selected_variants(ids: list[str] | None) -> list[Variant]:
     if not ids:
         return [VARIANTS["baseline"], VARIANTS["v1_current"]]
@@ -204,6 +210,48 @@ def make_manifest(split: str, num_eval: int, seed: int, *, force: bool = False) 
     out_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
     print(f"Wrote {out_path}")
     return out_path
+
+
+def read_manifest(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text())
+
+
+def write_chunk_manifest(
+    base_manifest_path: Path,
+    base_manifest: dict[str, Any],
+    *,
+    chunk_index: int,
+    chunk_count: int,
+    start: int,
+    end: int,
+    force: bool,
+) -> Path:
+    rows = base_manifest["rows"][start:end]
+    chunk_dir = MANIFEST_DIR / "chunks"
+    chunk_path = chunk_dir / (
+        f"{base_manifest_path.stem}_chunk{chunk_index:03d}_of{chunk_count:03d}.json"
+    )
+    payload = {
+        **{k: v for k, v in base_manifest.items() if k != "rows"},
+        "num_eval": len(rows),
+        "rows": rows,
+        "parent_manifest_path": str(base_manifest_path),
+        "parent_manifest_sha256": _sha256_json(base_manifest["rows"]),
+        "parent_num_eval": int(base_manifest["num_eval"]),
+        "chunk_index": chunk_index,
+        "chunk_count": chunk_count,
+        "chunk_start": start,
+        "chunk_end": end,
+    }
+    if chunk_path.exists() and not force:
+        existing = read_manifest(chunk_path)
+        if existing.get("rows") == rows and existing.get("parent_manifest_sha256") == payload["parent_manifest_sha256"]:
+            print(f"SKIP chunk manifest: {chunk_path}")
+            return chunk_path
+    chunk_dir.mkdir(parents=True, exist_ok=True)
+    chunk_path.write_text(json.dumps(payload, indent=2, sort_keys=True))
+    print(f"Wrote {chunk_path}")
+    return chunk_path
 
 
 def ensure_manifests(*, force: bool = False, smoke: bool = False) -> dict[str, Path]:
@@ -304,6 +352,8 @@ def eval_variant(
     num_samples: int | None = None,
     n_steps: int | None = None,
     solver_batch_size: int | None = None,
+    test_chunk_size: int | None = None,
+    output_filename: str | None = None,
     run_label: str = "",
     retries: int = 0,
 ) -> bool:
@@ -312,12 +362,38 @@ def eval_variant(
     if not ckpt.exists() and not dry_run:
         print(f"SKIP eval {name} epoch={epoch}: missing {ckpt}")
         return False
-    num_eval = int(json.loads(manifest.read_text())["num_eval"]) if manifest.exists() else (2 if smoke else 100)
-    filename = eval_filename(split, epoch, num_eval)
+    manifest_payload = read_manifest(manifest) if manifest.exists() else None
+    num_eval = int(manifest_payload["num_eval"]) if manifest_payload else (2 if smoke else 100)
+    filename = output_filename or eval_filename(split, epoch, num_eval)
     out_path = run_dir(name) / filename
     if out_path.exists() and not force:
         print(f"SKIP eval {name} {split} epoch={epoch}: {out_path}")
         return True
+    if (
+        split == "test"
+        and manifest_payload is not None
+        and test_chunk_size is not None
+        and test_chunk_size > 0
+        and num_eval > test_chunk_size
+        and output_filename is None
+    ):
+        return eval_variant_chunked(
+            variant,
+            train_seed,
+            manifest=manifest,
+            manifest_payload=manifest_payload,
+            epoch=epoch,
+            dry_run=dry_run,
+            force=force,
+            smoke=smoke,
+            num_samples=num_samples,
+            n_steps=n_steps,
+            solver_batch_size=solver_batch_size,
+            test_chunk_size=test_chunk_size,
+            run_label=run_label,
+            retries=retries,
+            final_output_path=out_path,
+        )
     cmd = [
         PYTHON_EXE,
         "eval.py",
@@ -351,7 +427,7 @@ def eval_variant(
     return False
 
 
-def parse_eval_result(path: Path) -> dict[str, Any] | None:
+def load_eval_metrics(path: Path) -> tuple[dict[str, Any], float | None] | None:
     if not path.exists():
         return None
     text = path.read_text()
@@ -360,6 +436,15 @@ def parse_eval_result(path: Path) -> dict[str, Any] | None:
     if not metrics_match:
         return None
     metrics = json.loads(metrics_match.group(1))
+    elapsed = float(time_match.group(1)) if time_match else None
+    return metrics, elapsed
+
+
+def parse_eval_result(path: Path) -> dict[str, Any] | None:
+    loaded = load_eval_metrics(path)
+    if loaded is None:
+        return None
+    metrics, elapsed = loaded
     flags = [bool(flag) for flag in metrics.get("episode_successes", [])]
     return {
         "successes": int(sum(flags)),
@@ -372,8 +457,173 @@ def parse_eval_result(path: Path) -> dict[str, Any] | None:
         "manifest": metrics.get("eval_manifest"),
         "normalizer_scope": metrics.get("normalizer_metadata", {}).get("normalizer_scope"),
         "solver_batch_size": metrics.get("solver_batch_size"),
-        "evaluation_time_seconds": float(time_match.group(1)) if time_match else None,
+        "evaluation_time_seconds": elapsed,
     }
+
+
+def eval_variant_chunked(
+    variant: Variant,
+    train_seed: int,
+    *,
+    manifest: Path,
+    manifest_payload: dict[str, Any],
+    epoch: int,
+    dry_run: bool,
+    force: bool,
+    smoke: bool,
+    num_samples: int | None,
+    n_steps: int | None,
+    solver_batch_size: int | None,
+    test_chunk_size: int,
+    run_label: str,
+    retries: int,
+    final_output_path: Path,
+) -> bool:
+    total = int(manifest_payload["num_eval"])
+    chunk_count = math.ceil(total / test_chunk_size)
+    name = output_name(variant, train_seed, smoke, run_label)
+    chunk_paths: list[Path] = []
+
+    for chunk_index, start in enumerate(range(0, total, test_chunk_size), start=1):
+        end = min(start + test_chunk_size, total)
+        chunk_manifest = write_chunk_manifest(
+            manifest,
+            manifest_payload,
+            chunk_index=chunk_index,
+            chunk_count=chunk_count,
+            start=start,
+            end=end,
+            force=force,
+        )
+        chunk_num_eval = end - start
+        chunk_filename = (
+            f"stage3_test_epoch{epoch}_num{total}"
+            f"_chunk{chunk_index:03d}_of{chunk_count:03d}_num{chunk_num_eval}.txt"
+        )
+        ok = eval_variant(
+            variant,
+            train_seed,
+            split="test",
+            manifest=chunk_manifest,
+            epoch=epoch,
+            dry_run=dry_run,
+            force=force,
+            smoke=smoke,
+            num_samples=num_samples,
+            n_steps=n_steps,
+            solver_batch_size=solver_batch_size,
+            test_chunk_size=None,
+            output_filename=chunk_filename,
+            run_label=run_label,
+            retries=retries,
+        )
+        if not ok:
+            return False
+        chunk_paths.append(run_dir(name) / chunk_filename)
+
+    if dry_run:
+        print(f"DRY RUN: would aggregate {chunk_count} chunks into {final_output_path}")
+        return True
+    return aggregate_chunked_eval_result(
+        manifest,
+        manifest_payload,
+        chunk_paths,
+        final_output_path,
+        epoch=epoch,
+        test_chunk_size=test_chunk_size,
+    )
+
+
+def aggregate_chunked_eval_result(
+    manifest_path_: Path,
+    manifest_payload: dict[str, Any],
+    chunk_paths: list[Path],
+    out_path: Path,
+    *,
+    epoch: int,
+    test_chunk_size: int,
+) -> bool:
+    flags: list[bool] = []
+    seeds: list[Any] = []
+    row_indices: list[int] = []
+    episodes: list[int] = []
+    start_idx: list[int] = []
+    chunk_summaries: list[dict[str, Any]] = []
+    elapsed_total = 0.0
+    first_metrics: dict[str, Any] | None = None
+
+    for chunk_path in chunk_paths:
+        loaded = load_eval_metrics(chunk_path)
+        if loaded is None:
+            print(f"Missing chunk result for aggregation: {chunk_path}")
+            return False
+        metrics, elapsed = loaded
+        if first_metrics is None:
+            first_metrics = metrics
+        chunk_flags = [bool(flag) for flag in metrics.get("episode_successes", [])]
+        flags.extend(chunk_flags)
+        seeds.extend(metrics.get("seeds") or [])
+        row_indices.extend(int(value) for value in metrics.get("eval_row_indices", []))
+        episodes.extend(int(value) for value in metrics.get("eval_episodes", []))
+        start_idx.extend(int(value) for value in metrics.get("eval_start_idx", []))
+        if elapsed is not None:
+            elapsed_total += elapsed
+        chunk_summaries.append(
+            {
+                "path": str(chunk_path),
+                "episodes": len(chunk_flags),
+                "successes": int(sum(chunk_flags)),
+                "success_rate": 100.0 * sum(chunk_flags) / len(chunk_flags) if chunk_flags else None,
+                "evaluation_time_seconds": elapsed,
+            }
+        )
+
+    expected_rows = manifest_payload["rows"]
+    expected_row_indices = [int(row["row_index"]) for row in expected_rows]
+    expected_episodes = [int(row["episode_idx"]) for row in expected_rows]
+    expected_start_idx = [int(row["start_step"]) for row in expected_rows]
+    if row_indices != expected_row_indices:
+        raise ValueError("Chunk aggregation row order does not match the base test manifest")
+    if episodes != expected_episodes or start_idx != expected_start_idx:
+        raise ValueError("Chunk aggregation episode/start metadata does not match the base test manifest")
+
+    merged = dict(first_metrics or {})
+    merged.update(
+        {
+            "success_rate": 100.0 * sum(flags) / len(flags) if flags else 0.0,
+            "episode_successes": flags,
+            "seeds": seeds,
+            "eval_row_indices": row_indices,
+            "eval_episodes": episodes,
+            "eval_start_idx": start_idx,
+            "eval_manifest": {
+                "manifest_path": str(manifest_path_),
+                "manifest_sha256": _sha256_json(expected_rows),
+                "split": manifest_payload.get("split"),
+                "size": len(expected_rows),
+                "seed": manifest_payload.get("seed"),
+            },
+            "chunked_eval": {
+                "chunk_size": test_chunk_size,
+                "chunk_count": len(chunk_paths),
+                "chunks": chunk_summaries,
+            },
+        }
+    )
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w") as fh:
+        fh.write("==== CONFIG ====\n")
+        fh.write("chunked_stage3_eval: true\n")
+        fh.write(f"epoch: {epoch}\n")
+        fh.write(f"manifest_path: {manifest_path_}\n")
+        fh.write(f"test_chunk_size: {test_chunk_size}\n")
+        fh.write("==== RESULTS ====\n")
+        fh.write(f"metrics: {merged}\n")
+        fh.write(f"metrics_json: {json.dumps(merged, sort_keys=True)}\n")
+        fh.write(f"evaluation_time: {elapsed_total} seconds\n")
+    print(f"Wrote chunked aggregate: {out_path}")
+    return True
 
 
 def val_num_eval_for_manifest(*, smoke: bool, val_manifest_kind: str) -> int:
@@ -593,6 +843,7 @@ def run_selected_test_evals(
     num_samples: int | None,
     n_steps: int | None,
     solver_batch_size: int | None = None,
+    test_chunk_size: int | None = None,
     run_label: str = "",
     val_manifest_kind: str = "small",
     eval_retries: int = 0,
@@ -622,6 +873,7 @@ def run_selected_test_evals(
                 num_samples=num_samples,
                 n_steps=n_steps,
                 solver_batch_size=solver_batch_size,
+                test_chunk_size=test_chunk_size,
                 run_label=run_label,
                 retries=eval_retries,
             )
@@ -645,6 +897,7 @@ def run_cycle(
     num_samples: int | None,
     n_steps: int | None,
     solver_batch_size: int | None = None,
+    test_chunk_size: int | None = None,
     run_label: str = "",
     limit_train_batches: int | None = None,
     limit_val_batches: int | None = None,
@@ -706,6 +959,7 @@ def run_cycle(
             num_samples=num_samples,
             n_steps=n_steps,
             solver_batch_size=solver_batch_size,
+            test_chunk_size=test_chunk_size,
             run_label=run_label,
             val_manifest_kind=val_manifest_kind,
             eval_retries=eval_retries,
@@ -746,6 +1000,7 @@ def main() -> None:
     parser.add_argument("--num-samples", type=int, default=None)
     parser.add_argument("--n-steps", type=int, default=None)
     parser.add_argument("--solver-batch-size", type=int, default=None)
+    parser.add_argument("--test-chunk-size", type=int, default=50)
     parser.add_argument("--val-manifest", choices=["small", "large"], default="small")
     args = parser.parse_args()
 
@@ -785,6 +1040,7 @@ def main() -> None:
             num_samples=args.num_samples,
             n_steps=args.n_steps,
             solver_batch_size=args.solver_batch_size,
+            test_chunk_size=args.test_chunk_size,
             run_label=args.run_label,
             limit_train_batches=args.limit_train_batches,
             limit_val_batches=args.limit_val_batches,
@@ -848,6 +1104,7 @@ def main() -> None:
             num_samples=args.num_samples,
             n_steps=args.n_steps,
             solver_batch_size=args.solver_batch_size,
+            test_chunk_size=args.test_chunk_size,
             run_label=args.run_label,
             val_manifest_kind=args.val_manifest,
             eval_retries=args.eval_retries,
@@ -870,6 +1127,7 @@ def main() -> None:
                         num_samples=args.num_samples,
                         n_steps=args.n_steps,
                         solver_batch_size=args.solver_batch_size,
+                        test_chunk_size=args.test_chunk_size,
                         run_label=args.run_label,
                         retries=args.eval_retries,
                     ) and ok
