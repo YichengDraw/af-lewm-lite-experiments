@@ -111,6 +111,45 @@ class RunPushtStage3Tests(unittest.TestCase):
 
             self.assertIn("trainer.max_epochs=50", output.getvalue())
 
+    def test_eval_mode_can_override_solver_batch_size(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory(prefix="stage3-eval-batch-test-") as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            module = load_stage3_module(tmp_path)
+            output = io.StringIO()
+            name = module.output_name(module.VARIANTS["baseline"], 3072, False, "")
+            run_dir = tmp_path / "runs" / "pusht_expert_train" / name
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / f"{name}_epoch_50_object.ckpt").write_text(
+                "ckpt",
+                encoding="utf-8",
+            )
+            manifest_dir = tmp_path / "manifests"
+            manifest_dir.mkdir(parents=True, exist_ok=True)
+            manifest = manifest_dir / "test.json"
+            manifest.write_text(json.dumps({"num_eval": 1000, "rows": []}), encoding="utf-8")
+
+            def fake_run_command(cmd, *, dry_run):
+                print(" ".join(cmd), file=output)
+                return 0
+
+            with mock.patch.object(module, "run_command", side_effect=fake_run_command):
+                ok = module.eval_variant(
+                    module.VARIANTS["baseline"],
+                    3072,
+                    split="test",
+                    manifest=manifest,
+                    epoch=50,
+                    dry_run=False,
+                    force=False,
+                    smoke=False,
+                    solver_batch_size=100,
+                )
+
+            self.assertTrue(ok)
+            self.assertIn("solver.batch_size=100", output.getvalue())
+
     def test_selected_test_eval_uses_best_val_epoch(self):
         from tempfile import TemporaryDirectory
 

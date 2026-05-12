@@ -303,6 +303,7 @@ def eval_variant(
     smoke: bool,
     num_samples: int | None = None,
     n_steps: int | None = None,
+    solver_batch_size: int | None = None,
     run_label: str = "",
     retries: int = 0,
 ) -> bool:
@@ -333,6 +334,8 @@ def eval_variant(
             cmd.append(f"solver.num_samples={num_samples}")
         if n_steps is not None:
             cmd.append(f"solver.n_steps={n_steps}")
+        if solver_batch_size is not None:
+            cmd.append(f"solver.batch_size={solver_batch_size}")
     for attempt in range(retries + 1):
         if run_command(cmd, dry_run=dry_run) == 0:
             return True
@@ -589,6 +592,7 @@ def run_selected_test_evals(
     smoke: bool,
     num_samples: int | None,
     n_steps: int | None,
+    solver_batch_size: int | None = None,
     run_label: str = "",
     val_manifest_kind: str = "small",
     eval_retries: int = 0,
@@ -617,6 +621,7 @@ def run_selected_test_evals(
                 smoke=smoke,
                 num_samples=num_samples,
                 n_steps=n_steps,
+                solver_batch_size=solver_batch_size,
                 run_label=run_label,
                 retries=eval_retries,
             )
@@ -639,6 +644,7 @@ def run_cycle(
     val_manifest_kind: str,
     num_samples: int | None,
     n_steps: int | None,
+    solver_batch_size: int | None = None,
     run_label: str = "",
     limit_train_batches: int | None = None,
     limit_val_batches: int | None = None,
@@ -682,6 +688,7 @@ def run_cycle(
                     smoke=smoke,
                     num_samples=num_samples,
                     n_steps=n_steps,
+                    solver_batch_size=solver_batch_size,
                     run_label=run_label,
                     retries=eval_retries,
                 )
@@ -698,6 +705,7 @@ def run_cycle(
             smoke=smoke,
             num_samples=num_samples,
             n_steps=n_steps,
+            solver_batch_size=solver_batch_size,
             run_label=run_label,
             val_manifest_kind=val_manifest_kind,
             eval_retries=eval_retries,
@@ -737,6 +745,7 @@ def main() -> None:
     parser.add_argument("--eval-retries", type=int, default=2)
     parser.add_argument("--num-samples", type=int, default=None)
     parser.add_argument("--n-steps", type=int, default=None)
+    parser.add_argument("--solver-batch-size", type=int, default=None)
     parser.add_argument("--val-manifest", choices=["small", "large"], default="small")
     args = parser.parse_args()
 
@@ -775,6 +784,7 @@ def main() -> None:
             val_manifest_kind=args.val_manifest,
             num_samples=args.num_samples,
             n_steps=args.n_steps,
+            solver_batch_size=args.solver_batch_size,
             run_label=args.run_label,
             limit_train_batches=args.limit_train_batches,
             limit_val_batches=args.limit_val_batches,
@@ -820,6 +830,7 @@ def main() -> None:
                         smoke=args.smoke,
                         num_samples=args.num_samples,
                         n_steps=args.n_steps,
+                        solver_batch_size=args.solver_batch_size,
                         run_label=args.run_label,
                         retries=args.eval_retries,
                     ) and ok
@@ -836,6 +847,7 @@ def main() -> None:
             smoke=args.smoke,
             num_samples=args.num_samples,
             n_steps=args.n_steps,
+            solver_batch_size=args.solver_batch_size,
             run_label=args.run_label,
             val_manifest_kind=args.val_manifest,
             eval_retries=args.eval_retries,
@@ -857,6 +869,7 @@ def main() -> None:
                         smoke=args.smoke,
                         num_samples=args.num_samples,
                         n_steps=args.n_steps,
+                        solver_batch_size=args.solver_batch_size,
                         run_label=args.run_label,
                         retries=args.eval_retries,
                     ) and ok
