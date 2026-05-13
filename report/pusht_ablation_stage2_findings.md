@@ -1,5 +1,9 @@
 # PushT Ablation Stage 2 Findings
 
+This is a historical reliability check. It promoted `v1_current` to the Stage 3
+matched-budget comparison; the current primary result is the Stage 3 test1000
+table in `report/pusht_stage3_protocol.md`.
+
 Stage 2 was run locally on the RTX 4070 Laptop GPU. Training used source
 commit `39ac7a30`; reports were regenerated with commit `1115bf8`. No rented
 GPU was used.
@@ -80,11 +84,11 @@ planning latent.
 
 ## Decision
 
-Use baseline as the main reliable PushT result for this repo. Keep v1 as an
-interesting negative/diagnostic result: it creates a cleaner appearance split,
-but current planning success does not improve. Do not invest further in the
-current v2 family without simplifying the objective or changing the training
-scale/eval protocol.
+Use `v1_current` as the only AF candidate worth a larger matched comparison.
+Stage 3 later found that `v1_current` ties baseline on final test1000 and does
+not provide a reliable PushT improvement. Do not invest further in the current
+v2 family without simplifying the objective or changing the training scale/eval
+protocol.
 
 Raw machine-readable outputs:
 

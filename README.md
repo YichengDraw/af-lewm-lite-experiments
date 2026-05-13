@@ -4,13 +4,50 @@ This repository is a compact, reliability-checked PushT study for Appearance-Fac
 
 Here, `AF` means `Appearance-Factored`: the added branch factors appearance information into `app_emb` while planning still uses the dynamics latent `emb`. The action block encoder is inherited from baseline LeWM.
 
-The repo now focuses on one experiment family:
+The repo now focuses on one primary experiment family:
 
 - `Baseline LeWM`
 - `Appearance-Factored LeWM-lite v1`: shared encoder, dynamics projection, appearance projection, invariance loss, independence penalty
-- `Appearance-Factored LeWM-lite v2`: v1 plus sequence-consistent nuisance shaping and a dynamics-side gradient-reversal nuisance head
+- `Appearance-Factored LeWM-lite v2`: historical ablation only; v2 was not promoted after the earlier reliability checks
 
 Planning uses only the dynamics latent. The appearance branch is a training-time shaping signal.
+
+## Latest Result
+
+The current primary result is the Stage 3 PushT comparison in
+`report/pusht_stage3_protocol.md`. It is a matched 5090-budget experiment, not a
+full official-scale LeWM reproduction:
+
+- run label: `b96k1000e50`
+- GPU: RTX 5090 32 GB
+- variants: baseline LeWM and AF-LeWM v1
+- train seeds: `3072` through `3076`
+- training budget: 50 epochs, 1000 train batches per epoch, batch size 96
+- validation: locked val100 manifest every 5 epochs
+- final test: locked test1000 manifest, using the best val100 checkpoint per run
+
+Batch size 96 is a matched fallback from the upstream batch size 128 because
+AF-LeWM v1 performs clean, aug_a, and aug_b encoder passes in each training
+step. The comparison keeps the model, optimizer, learning rate, data split,
+normalization scope, validation cadence, and final planner evaluation matched.
+
+| train seed | baseline best val100 | baseline test1000 | v1 best val100 | v1 test1000 | v1 - baseline test |
+|---:|---:|---:|---:|---:|---:|
+| 3072 | 90.0 | 87.1 | 88.0 | 87.1 | 0.0 |
+| 3073 | 82.0 | 80.5 | 81.0 | 78.9 | -1.6 |
+| 3074 | 81.0 | 81.6 | 81.0 | 84.5 | +2.9 |
+| 3075 | 85.0 | 84.6 | 84.0 | 84.5 | -0.1 |
+| 3076 | 88.0 | 87.2 | 85.0 | 86.1 | -1.1 |
+
+| variant | best val100 mean | best val100 std | test1000 mean | test1000 std |
+|---|---:|---:|---:|---:|
+| baseline | 85.20 | 3.83 | 84.20 | 3.08 |
+| AF-LeWM v1 | 83.80 | 2.95 | 84.22 | 3.17 |
+
+Verdict: AF-LeWM v1 is effectively tied with baseline on final test1000
+success rate. The paired mean test delta is `+0.02` percentage points for v1,
+with `1.75` points standard deviation across the five paired train seeds. This
+does not support a reliable v1 advantage under the current IID PushT protocol.
 
 ## Model Pipeline
 
@@ -96,7 +133,32 @@ python run_all.py --mode status --env pusht
 
 ## Run
 
-Train all three matched PushT models:
+Run the current Stage 3 comparison:
+
+```bash
+python tools/run_pusht_stage3.py --mode cycle --run-label b96k1000e50 \
+  --train-seeds 3072 3073 3074 3075 3076 \
+  --ids baseline v1_current \
+  --epochs 5 10 15 20 25 30 35 40 45 50 \
+  --batch-size 96 \
+  --limit-train-batches 1000 \
+  --limit-val-batches 50 \
+  --log-every-n-steps 50 \
+  --eval-retries 2 \
+  --solver-batch-size 50 \
+  --test-chunk-size 50 \
+  --wandb
+```
+
+Inspect existing Stage 3 artifacts:
+
+```bash
+python tools/run_pusht_stage3.py --mode status --run-label b96k1000e50 \
+  --train-seeds 3072 3073 3074 3075 3076 \
+  --ids baseline v1_current
+```
+
+The older `run_all.py` flow remains useful for quick legacy checks:
 
 ```bash
 python run_all.py --mode train --env pusht
@@ -116,12 +178,13 @@ aflewm_pusht_v1_reliable
 aflewm_pusht_v2_reliable
 ```
 
-## Current Ablation Result
+## Earlier Ablations
 
-The full result is stage-dependent. Stage 1 was a short structural screen, where
-`v1_current` and `v2_app_nuisance_only` were above baseline. Stage 2 was the
-larger reliability check, where the scaled AF variants finished below baseline
-at both inspected checkpoints.
+These earlier ablations are retained as provenance. They used smaller budgets
+and should not override the Stage 3 test1000 result above. Stage 1 was a short
+structural screen, where `v1_current` and `v2_app_nuisance_only` were above
+baseline. Stage 2 was a larger reliability check, where the scaled AF variants
+finished below baseline at both inspected checkpoints.
 
 ### Stage 1 Structural Screen
 
@@ -156,27 +219,45 @@ Stage 2 scaled the selected candidates: `baseline`, `v1_current`, and
 | epoch 50 | `v1_current` | 3072, 3073 | 22 | 400 | 5.50% | -0.75 pp |
 | epoch 50 | `v2_app_nuisance_only` | 3072, 3073 | 20 | 400 | 5.00% | -1.25 pp |
 
-Decision: baseline is the main reliable PushT result for this repo. `v1_current`
-remains a useful negative result because it produces cleaner latent
-factorization diagnostics, but the current AF objectives do not improve PushT
-planning success under this protocol.
+Decision after Stage 2: keep `v1_current` as the only AF variant worth a
+larger matched comparison. Stage 3 then showed that `v1_current` ties baseline
+on test1000 and does not provide a reliable PushT improvement.
 
 ## Report
 
-Regenerate JSON, CSV, plots, diagrams, and the LaTeX source:
+Regenerate the Stage 3 CSV/JSON report from existing run artifacts:
+
+```bash
+python tools/run_pusht_stage3.py --mode report --run-label b96k1000e50 \
+  --train-seeds 3072 3073 3074 3075 3076 \
+  --ids baseline v1_current \
+  --epochs 5 10 15 20 25 30 35 40 45 50
+```
+
+Regenerate legacy official-budget JSON, CSV, plots, diagrams, and the LaTeX
+source:
 
 ```bash
 python tools/generate_pusht_official_report_assets.py
 ```
 
-Build the PDF:
+Build the legacy PDF:
 
 ```bash
 xelatex -interaction=nonstopmode -halt-on-error -output-directory=report report/pusht_aflewm_official_summary.tex
 xelatex -interaction=nonstopmode -halt-on-error -output-directory=report report/pusht_aflewm_official_summary.tex
 ```
 
-Primary report artifacts:
+Primary Stage 3 report artifacts:
+
+- `report/pusht_stage3_protocol.md`
+- `report/pusht_stage3_v1_b96k1000e50_summary.csv`
+- `report/pusht_stage3_v1_b96k1000e50_paired.csv`
+- `report/pusht_stage3_v1_b96k1000e50_val_curve.csv`
+- JSON companions for the same tables
+- `report/stage3_manifests/`
+
+Legacy official-budget report artifacts:
 
 - `report/pusht_aflewm_official_summary.pdf`
 - `report/pusht_aflewm_official_summary.tex`
