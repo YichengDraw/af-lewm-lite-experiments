@@ -61,6 +61,35 @@ Training saves object checkpoints every 5 epochs. The runner trains in resumable
 
 Final test evaluation is run once per model/seed using the checkpoint selected by validation closed-loop success. Validation loss is diagnostic; closed-loop success is the selection metric.
 
+## Completed `b96k1000e50` Results
+
+This run completed on the RTX 5090 host with 5 train seeds, val100 checkpoint selection, and final test1000 PushT success-rate evaluation. The generated machine-readable artifacts are:
+
+- `report/pusht_stage3_v1_b96k1000e50_summary.csv`
+- `report/pusht_stage3_v1_b96k1000e50_paired.csv`
+- `report/pusht_stage3_v1_b96k1000e50_val_curve.csv`
+- JSON companions for the same tables
+- locked manifests under `report/stage3_manifests/`
+
+Per-seed results:
+
+| train seed | baseline best val100 | baseline test1000 | v1 best val100 | v1 test1000 | v1 - baseline test |
+|---:|---:|---:|---:|---:|---:|
+| 3072 | 90.0 | 87.1 | 88.0 | 87.1 | 0.0 |
+| 3073 | 82.0 | 80.5 | 81.0 | 78.9 | -1.6 |
+| 3074 | 81.0 | 81.6 | 81.0 | 84.5 | +2.9 |
+| 3075 | 85.0 | 84.6 | 84.0 | 84.5 | -0.1 |
+| 3076 | 88.0 | 87.2 | 85.0 | 86.1 | -1.1 |
+
+Aggregate results:
+
+| variant | best val100 mean | best val100 std | test1000 mean | test1000 std |
+|---|---:|---:|---:|---:|
+| baseline | 85.20 | 3.83 | 84.20 | 3.08 |
+| AF-LeWM v1 | 83.80 | 2.95 | 84.22 | 3.17 |
+
+The paired mean test delta is `+0.02` percentage points for v1 over baseline with standard deviation `1.75` points across the 5 paired seeds. The evidence does not show a reliable v1 advantage under this budgeted protocol. It also does not show a meaningful baseline advantage on final test1000: the mean test difference is effectively zero, while the seed-to-seed spread is several percentage points.
+
 ## Existing Remote Baseline
 
 The SSH 5090 host already contains a PushT LeWM checkpoint trained with batch size 128 and learning rate 5e-5 for 10 epochs. It is useful as a reference row and smoke sanity check. It is not the primary Stage 3 baseline because it lacks the full Stage 3 split, manifest, W&B, and 100-epoch provenance.

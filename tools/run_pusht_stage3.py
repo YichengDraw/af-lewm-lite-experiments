@@ -973,25 +973,25 @@ def run_cycle(
                 )
                 if not ok:
                     return False
+    ok = run_selected_test_evals(
+        variants,
+        train_seeds,
+        epochs,
+        manifests=manifests,
+        dry_run=dry_run,
+        force=force,
+        smoke=smoke,
+        num_samples=num_samples,
+        n_steps=n_steps,
+        solver_batch_size=solver_batch_size,
+        test_chunk_size=test_chunk_size,
+        run_label=run_label,
+        val_manifest_kind=val_manifest_kind,
+        eval_retries=eval_retries,
+    )
+    if not ok:
+        return False
     if not dry_run:
-        ok = run_selected_test_evals(
-            variants,
-            train_seeds,
-            epochs,
-            manifests=manifests,
-            dry_run=dry_run,
-            force=force,
-            smoke=smoke,
-            num_samples=num_samples,
-            n_steps=n_steps,
-            solver_batch_size=solver_batch_size,
-            test_chunk_size=test_chunk_size,
-            run_label=run_label,
-            val_manifest_kind=val_manifest_kind,
-            eval_retries=eval_retries,
-        )
-        if not ok:
-            return False
         write_report(
             variants,
             train_seeds,
@@ -1118,7 +1118,7 @@ def main() -> None:
                     ) and ok
                     if not ok:
                         sys.exit(1)
-    if args.mode in ("all",) and not args.dry_run:
+    if args.mode in ("all",):
         ok = run_selected_test_evals(
             variants,
             args.train_seeds,

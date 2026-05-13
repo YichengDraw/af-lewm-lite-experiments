@@ -272,6 +272,96 @@ class RunPushtStage3Tests(unittest.TestCase):
                 [{"split": "test", "epoch": 50, "manifest": Path("test-manifest.json")}],
             )
 
+    def test_run_cycle_dry_run_still_schedules_selected_test(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory(prefix="stage3-cycle-dry-run-") as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            module = load_stage3_module(tmp_path)
+
+            with mock.patch.object(module, "train_variant", return_value=True) as train_mock, mock.patch.object(
+                module,
+                "eval_variant",
+                return_value=True,
+            ) as eval_mock, mock.patch.object(
+                module,
+                "run_selected_test_evals",
+                return_value=True,
+            ) as selected_test_mock, mock.patch.object(module, "write_report") as write_report_mock:
+                ok = module.run_cycle(
+                    [module.VARIANTS["baseline"]],
+                    [3072],
+                    [5, 50],
+                    manifests={
+                        "val_small": Path("val-small.json"),
+                        "val_large": Path("val-large.json"),
+                        "test": Path("test.json"),
+                    },
+                    dry_run=True,
+                    force=False,
+                    smoke=False,
+                    wandb=False,
+                    batch_size=None,
+                    val_manifest_kind="small",
+                    num_samples=None,
+                    n_steps=None,
+                )
+
+            self.assertTrue(ok)
+            self.assertEqual(train_mock.call_count, 2)
+            self.assertEqual(eval_mock.call_count, 2)
+            selected_test_mock.assert_called_once()
+            self.assertTrue(selected_test_mock.call_args.kwargs["dry_run"])
+            write_report_mock.assert_not_called()
+
+    def test_main_all_dry_run_calls_selected_test_eval(self):
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory(prefix="stage3-main-all-dry-run-") as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            module = load_stage3_module(tmp_path)
+            output = io.StringIO()
+            argv = [
+                "run_pusht_stage3.py",
+                "--mode",
+                "all",
+                "--ids",
+                "baseline",
+                "--train-seeds",
+                "3072",
+                "--epochs",
+                "5",
+                "50",
+                "--dry-run",
+            ]
+
+            with mock.patch.object(module, "ensure_manifests", return_value={"val_small": Path("val.json"), "test": Path("test.json")}), mock.patch.object(
+                module,
+                "train_variant",
+                return_value=True,
+            ), mock.patch.object(
+                module,
+                "eval_variant",
+                return_value=True,
+            ), mock.patch.object(
+                module,
+                "run_selected_test_evals",
+                return_value=True,
+            ) as selected_test_mock, mock.patch.object(module, "write_report") as write_report_mock, mock.patch.object(
+                sys,
+                "argv",
+                argv,
+            ), mock.patch(
+                "sys.stdout",
+                output,
+            ):
+                module.main()
+
+            selected_test_mock.assert_called_once()
+            self.assertTrue(selected_test_mock.call_args.kwargs["dry_run"])
+            write_report_mock.assert_not_called()
+            self.assertIn("DRY RUN: would write Stage 3 report", output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

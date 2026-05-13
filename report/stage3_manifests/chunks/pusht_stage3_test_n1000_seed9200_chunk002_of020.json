@@ -1,0 +1,272 @@
+{
+  "chunk_count": 20,
+  "chunk_end": 100,
+  "chunk_index": 2,
+  "chunk_start": 50,
+  "dataset": "C:\\Users\\yiche\\.stable-wm\\pusht_expert_train.h5",
+  "goal_offset_steps": 25,
+  "history_span": 15,
+  "manifest_type": "pusht_stage3_eval_manifest",
+  "num_eval": 50,
+  "parent_manifest_path": "/home/ubuntu/lewm_repro/af-lewm-lite-stage3/report/stage3_manifests/pusht_stage3_test_n1000_seed9200.json",
+  "parent_manifest_sha256": "bd9881401fc3001be8d98dc79cd550305e4d7fba3fefa7086ec955549eb4f6fd",
+  "parent_num_eval": 1000,
+  "rows": [
+    {
+      "episode_idx": 904,
+      "row_index": 112385,
+      "start_step": 89
+    },
+    {
+      "episode_idx": 905,
+      "row_index": 112575,
+      "start_step": 94
+    },
+    {
+      "episode_idx": 952,
+      "row_index": 118520,
+      "start_step": 53
+    },
+    {
+      "episode_idx": 962,
+      "row_index": 119722,
+      "start_step": 35
+    },
+    {
+      "episode_idx": 973,
+      "row_index": 121101,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 993,
+      "row_index": 123540,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 994,
+      "row_index": 123673,
+      "start_step": 82
+    },
+    {
+      "episode_idx": 1039,
+      "row_index": 128999,
+      "start_step": 63
+    },
+    {
+      "episode_idx": 1101,
+      "row_index": 136268,
+      "start_step": 78
+    },
+    {
+      "episode_idx": 1104,
+      "row_index": 136617,
+      "start_step": 76
+    },
+    {
+      "episode_idx": 1121,
+      "row_index": 138396,
+      "start_step": 36
+    },
+    {
+      "episode_idx": 1142,
+      "row_index": 140520,
+      "start_step": 60
+    },
+    {
+      "episode_idx": 1144,
+      "row_index": 140701,
+      "start_step": 41
+    },
+    {
+      "episode_idx": 1203,
+      "row_index": 146576,
+      "start_step": 16
+    },
+    {
+      "episode_idx": 1248,
+      "row_index": 151704,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 1250,
+      "row_index": 151956,
+      "start_step": 50
+    },
+    {
+      "episode_idx": 1265,
+      "row_index": 153733,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 1266,
+      "row_index": 153854,
+      "start_step": 76
+    },
+    {
+      "episode_idx": 1336,
+      "row_index": 163034,
+      "start_step": 100
+    },
+    {
+      "episode_idx": 1344,
+      "row_index": 164298,
+      "start_step": 92
+    },
+    {
+      "episode_idx": 1361,
+      "row_index": 167031,
+      "start_step": 122
+    },
+    {
+      "episode_idx": 1415,
+      "row_index": 175460,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 1445,
+      "row_index": 178205,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 1449,
+      "row_index": 178599,
+      "start_step": 43
+    },
+    {
+      "episode_idx": 1470,
+      "row_index": 180516,
+      "start_step": 28
+    },
+    {
+      "episode_idx": 1488,
+      "row_index": 182165,
+      "start_step": 21
+    },
+    {
+      "episode_idx": 1490,
+      "row_index": 182368,
+      "start_step": 40
+    },
+    {
+      "episode_idx": 1510,
+      "row_index": 184216,
+      "start_step": 48
+    },
+    {
+      "episode_idx": 1512,
+      "row_index": 184387,
+      "start_step": 35
+    },
+    {
+      "episode_idx": 1514,
+      "row_index": 184597,
+      "start_step": 61
+    },
+    {
+      "episode_idx": 1521,
+      "row_index": 185551,
+      "start_step": 101
+    },
+    {
+      "episode_idx": 1523,
+      "row_index": 185824,
+      "start_step": 100
+    },
+    {
+      "episode_idx": 1546,
+      "row_index": 188899,
+      "start_step": 24
+    },
+    {
+      "episode_idx": 1548,
+      "row_index": 189163,
+      "start_step": 14
+    },
+    {
+      "episode_idx": 1593,
+      "row_index": 195374,
+      "start_step": 60
+    },
+    {
+      "episode_idx": 1596,
+      "row_index": 195835,
+      "start_step": 110
+    },
+    {
+      "episode_idx": 1638,
+      "row_index": 201576,
+      "start_step": 97
+    },
+    {
+      "episode_idx": 1707,
+      "row_index": 210965,
+      "start_step": 33
+    },
+    {
+      "episode_idx": 1748,
+      "row_index": 215156,
+      "start_step": 64
+    },
+    {
+      "episode_idx": 1754,
+      "row_index": 215646,
+      "start_step": 14
+    },
+    {
+      "episode_idx": 1762,
+      "row_index": 216390,
+      "start_step": 38
+    },
+    {
+      "episode_idx": 1786,
+      "row_index": 218543,
+      "start_step": 31
+    },
+    {
+      "episode_idx": 1789,
+      "row_index": 218804,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 1791,
+      "row_index": 218977,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 1792,
+      "row_index": 219108,
+      "start_step": 56
+    },
+    {
+      "episode_idx": 1796,
+      "row_index": 219456,
+      "start_step": 44
+    },
+    {
+      "episode_idx": 1805,
+      "row_index": 220256,
+      "start_step": 34
+    },
+    {
+      "episode_idx": 1880,
+      "row_index": 226573,
+      "start_step": 35
+    },
+    {
+      "episode_idx": 1887,
+      "row_index": 227164,
+      "start_step": 45
+    },
+    {
+      "episode_idx": 1897,
+      "row_index": 227988,
+      "start_step": 39
+    }
+  ],
+  "seed": 9200,
+  "split": "test",
+  "split_seed": 9001,
+  "test_split": 0.1,
+  "train_split": 0.8,
+  "val_split": 0.1
+}

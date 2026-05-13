@@ -1,0 +1,11 @@
+best_val_epoch,best_val_success_percent,final_ckpt_exists,output_model_name,test_episodes,test_success_percent,test_successes,train_seed,variant_id
+45,90.0,True,lewm_pusht_stage3_b96k1000e50_s3_seed3072,1000,87.1,871,3072,baseline
+45,82.0,True,lewm_pusht_stage3_b96k1000e50_s3_seed3073,1000,80.5,805,3073,baseline
+35,81.0,True,lewm_pusht_stage3_b96k1000e50_s3_seed3074,1000,81.6,816,3074,baseline
+45,85.0,True,lewm_pusht_stage3_b96k1000e50_s3_seed3075,1000,84.6,846,3075,baseline
+45,88.0,True,lewm_pusht_stage3_b96k1000e50_s3_seed3076,1000,87.2,872,3076,baseline
+45,88.0,True,aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3072,1000,87.1,871,3072,v1_current
+45,81.0,True,aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3073,1000,78.9,789,3073,v1_current
+45,81.0,True,aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3074,1000,84.5,845,3074,v1_current
+45,84.0,True,aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3075,1000,84.5,845,3075,v1_current
+45,85.0,True,aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3076,1000,86.1,861,3076,v1_current
