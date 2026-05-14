@@ -39,42 +39,42 @@ class Variant:
 STAGE1_VARIANTS: tuple[Variant, ...] = (
     Variant(
         "baseline",
-        "lewm_pusht_official_budget",
+        "lewm_pusht_ablation",
         "lewm_pusht_reliable",
         "Baseline LeWM single dynamics latent.",
         reuse_existing=True,
     ),
     Variant(
         "v1_current",
-        "aflewm_pusht_official_budget",
+        "aflewm_pusht_v1_ablation",
         "aflewm_pusht_v1_reliable",
         "Current v1: appearance projector + invariance + independence.",
         reuse_existing=True,
     ),
     Variant(
         "v1_inv_only",
-        "aflewm_pusht_official_budget",
+        "aflewm_pusht_v1_ablation",
         "aflewm_pusht_v1_inv_only",
         "v1 without cross-cov independence.",
         ("aflwm.loss.independence_weight=0.0",),
     ),
     Variant(
         "v1_indep_only",
-        "aflewm_pusht_official_budget",
+        "aflewm_pusht_v1_ablation",
         "aflewm_pusht_v1_indep_only",
         "v1 without augmentation invariance.",
         ("aflwm.loss.invariance_weight=0.0",),
     ),
     Variant(
         "v1_seq_only",
-        "aflewm_pusht_official_budget",
+        "aflewm_pusht_v1_ablation",
         "aflewm_pusht_v1_seq_only",
         "v1 with sequence-consistent appearance augmentations.",
         ("+aflwm.augment.consistent_across_time=True",),
     ),
     Variant(
         "v1_seq_stopgrad",
-        "aflewm_pusht_official_budget",
+        "aflewm_pusht_v1_ablation",
         "aflewm_pusht_v1_seq_stopgrad",
         "v1 with sequence-consistent augmentations and stop-grad invariance target.",
         (
@@ -84,14 +84,14 @@ STAGE1_VARIANTS: tuple[Variant, ...] = (
     ),
     Variant(
         "v2_app_nuisance_only",
-        "aflewm_pusht_v2_official_budget",
+        "aflewm_pusht_v2_ablation",
         "aflewm_pusht_v2_app_nuisance_only",
         "v2 without dynamics-side adversarial nuisance loss.",
         ("aflwm.loss.dynamics_nuisance_weight=0.0",),
     ),
     Variant(
         "v2_weak_grl",
-        "aflewm_pusht_v2_official_budget",
+        "aflewm_pusht_v2_ablation",
         "aflewm_pusht_v2_weak_grl",
         "v2 with lighter dynamics nuisance pressure.",
         (
@@ -101,14 +101,14 @@ STAGE1_VARIANTS: tuple[Variant, ...] = (
     ),
     Variant(
         "v2_current",
-        "aflewm_pusht_v2_official_budget",
+        "aflewm_pusht_v2_ablation",
         "aflewm_pusht_v2_reliable",
         "Current v2: sequence-consistent nuisance shaping + full GRL.",
         reuse_existing=True,
     ),
     Variant(
         "v2_grl_warmup",
-        "aflewm_pusht_v2_official_budget",
+        "aflewm_pusht_v2_ablation",
         "aflewm_pusht_v2_grl_warmup",
         "Current v2 with GRL lambda linearly warmed over the first 30% of training steps.",
         ("+aflwm.loss.grl_warmup_frac=0.3",),

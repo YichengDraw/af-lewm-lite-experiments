@@ -1,0 +1,272 @@
+{
+  "chunk_count": 20,
+  "chunk_end": 450,
+  "chunk_index": 9,
+  "chunk_start": 400,
+  "dataset": "${STABLEWM_HOME}/pusht_expert_train.h5",
+  "goal_offset_steps": 25,
+  "history_span": 15,
+  "manifest_type": "pusht_stage3_eval_manifest",
+  "num_eval": 50,
+  "parent_manifest_path": "report/stage3_manifests/pusht_stage3_test_n1000_seed9200.json",
+  "parent_manifest_sha256": "bd9881401fc3001be8d98dc79cd550305e4d7fba3fefa7086ec955549eb4f6fd",
+  "parent_num_eval": 1000,
+  "rows": [
+    {
+      "episode_idx": 7220,
+      "row_index": 893848,
+      "start_step": 34
+    },
+    {
+      "episode_idx": 7275,
+      "row_index": 900761,
+      "start_step": 48
+    },
+    {
+      "episode_idx": 7288,
+      "row_index": 902499,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 7290,
+      "row_index": 902800,
+      "start_step": 92
+    },
+    {
+      "episode_idx": 7291,
+      "row_index": 902884,
+      "start_step": 43
+    },
+    {
+      "episode_idx": 7297,
+      "row_index": 903726,
+      "start_step": 87
+    },
+    {
+      "episode_idx": 7298,
+      "row_index": 903804,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 7316,
+      "row_index": 906234,
+      "start_step": 68
+    },
+    {
+      "episode_idx": 7331,
+      "row_index": 908235,
+      "start_step": 74
+    },
+    {
+      "episode_idx": 7346,
+      "row_index": 910226,
+      "start_step": 70
+    },
+    {
+      "episode_idx": 7362,
+      "row_index": 912310,
+      "start_step": 26
+    },
+    {
+      "episode_idx": 7373,
+      "row_index": 913796,
+      "start_step": 49
+    },
+    {
+      "episode_idx": 7420,
+      "row_index": 919183,
+      "start_step": 31
+    },
+    {
+      "episode_idx": 7423,
+      "row_index": 919541,
+      "start_step": 44
+    },
+    {
+      "episode_idx": 7452,
+      "row_index": 922918,
+      "start_step": 86
+    },
+    {
+      "episode_idx": 7471,
+      "row_index": 925075,
+      "start_step": 58
+    },
+    {
+      "episode_idx": 7514,
+      "row_index": 932037,
+      "start_step": 75
+    },
+    {
+      "episode_idx": 7523,
+      "row_index": 933469,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 7524,
+      "row_index": 933730,
+      "start_step": 118
+    },
+    {
+      "episode_idx": 7547,
+      "row_index": 937481,
+      "start_step": 74
+    },
+    {
+      "episode_idx": 7557,
+      "row_index": 939077,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 7560,
+      "row_index": 939576,
+      "start_step": 24
+    },
+    {
+      "episode_idx": 7573,
+      "row_index": 941830,
+      "start_step": 133
+    },
+    {
+      "episode_idx": 7601,
+      "row_index": 944933,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 7611,
+      "row_index": 946006,
+      "start_step": 55
+    },
+    {
+      "episode_idx": 7621,
+      "row_index": 947119,
+      "start_step": 78
+    },
+    {
+      "episode_idx": 7647,
+      "row_index": 949904,
+      "start_step": 29
+    },
+    {
+      "episode_idx": 7682,
+      "row_index": 953742,
+      "start_step": 76
+    },
+    {
+      "episode_idx": 7683,
+      "row_index": 953846,
+      "start_step": 75
+    },
+    {
+      "episode_idx": 7684,
+      "row_index": 953923,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 7706,
+      "row_index": 956264,
+      "start_step": 78
+    },
+    {
+      "episode_idx": 7745,
+      "row_index": 960357,
+      "start_step": 76
+    },
+    {
+      "episode_idx": 7752,
+      "row_index": 961048,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 7761,
+      "row_index": 962034,
+      "start_step": 73
+    },
+    {
+      "episode_idx": 7769,
+      "row_index": 962845,
+      "start_step": 44
+    },
+    {
+      "episode_idx": 7772,
+      "row_index": 963135,
+      "start_step": 19
+    },
+    {
+      "episode_idx": 7807,
+      "row_index": 965588,
+      "start_step": 27
+    },
+    {
+      "episode_idx": 7813,
+      "row_index": 965983,
+      "start_step": 38
+    },
+    {
+      "episode_idx": 7834,
+      "row_index": 967308,
+      "start_step": 19
+    },
+    {
+      "episode_idx": 7844,
+      "row_index": 967947,
+      "start_step": 18
+    },
+    {
+      "episode_idx": 7906,
+      "row_index": 973065,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 7937,
+      "row_index": 976323,
+      "start_step": 23
+    },
+    {
+      "episode_idx": 7938,
+      "row_index": 976440,
+      "start_step": 35
+    },
+    {
+      "episode_idx": 7962,
+      "row_index": 978982,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 8007,
+      "row_index": 984602,
+      "start_step": 28
+    },
+    {
+      "episode_idx": 8038,
+      "row_index": 988950,
+      "start_step": 98
+    },
+    {
+      "episode_idx": 8059,
+      "row_index": 991805,
+      "start_step": 55
+    },
+    {
+      "episode_idx": 8087,
+      "row_index": 995538,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 8096,
+      "row_index": 996627,
+      "start_step": 75
+    },
+    {
+      "episode_idx": 8136,
+      "row_index": 1001393,
+      "start_step": 81
+    }
+  ],
+  "seed": 9200,
+  "split": "test",
+  "split_seed": 9001,
+  "test_split": 0.1,
+  "train_split": 0.8,
+  "val_split": 0.1
+}

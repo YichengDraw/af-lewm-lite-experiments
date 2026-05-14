@@ -1,0 +1,2515 @@
+{
+  "dataset": "${STABLEWM_HOME}/pusht_expert_train.h5",
+  "goal_offset_steps": 25,
+  "history_span": 15,
+  "manifest_type": "pusht_stage3_eval_manifest",
+  "num_eval": 500,
+  "rows": [
+    {
+      "episode_idx": 101,
+      "row_index": 11049,
+      "start_step": 40
+    },
+    {
+      "episode_idx": 148,
+      "row_index": 17187,
+      "start_step": 21
+    },
+    {
+      "episode_idx": 180,
+      "row_index": 21391,
+      "start_step": 33
+    },
+    {
+      "episode_idx": 240,
+      "row_index": 27485,
+      "start_step": 53
+    },
+    {
+      "episode_idx": 250,
+      "row_index": 28305,
+      "start_step": 33
+    },
+    {
+      "episode_idx": 308,
+      "row_index": 33460,
+      "start_step": 66
+    },
+    {
+      "episode_idx": 533,
+      "row_index": 56835,
+      "start_step": 80
+    },
+    {
+      "episode_idx": 536,
+      "row_index": 57181,
+      "start_step": 48
+    },
+    {
+      "episode_idx": 553,
+      "row_index": 59309,
+      "start_step": 34
+    },
+    {
+      "episode_idx": 554,
+      "row_index": 59460,
+      "start_step": 59
+    },
+    {
+      "episode_idx": 579,
+      "row_index": 62578,
+      "start_step": 27
+    },
+    {
+      "episode_idx": 602,
+      "row_index": 65464,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 626,
+      "row_index": 69147,
+      "start_step": 34
+    },
+    {
+      "episode_idx": 643,
+      "row_index": 71867,
+      "start_step": 68
+    },
+    {
+      "episode_idx": 677,
+      "row_index": 77293,
+      "start_step": 122
+    },
+    {
+      "episode_idx": 694,
+      "row_index": 79987,
+      "start_step": 130
+    },
+    {
+      "episode_idx": 721,
+      "row_index": 83740,
+      "start_step": 79
+    },
+    {
+      "episode_idx": 746,
+      "row_index": 86851,
+      "start_step": 65
+    },
+    {
+      "episode_idx": 758,
+      "row_index": 88308,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 800,
+      "row_index": 93622,
+      "start_step": 86
+    },
+    {
+      "episode_idx": 806,
+      "row_index": 94372,
+      "start_step": 86
+    },
+    {
+      "episode_idx": 858,
+      "row_index": 103916,
+      "start_step": 130
+    },
+    {
+      "episode_idx": 908,
+      "row_index": 113170,
+      "start_step": 134
+    },
+    {
+      "episode_idx": 969,
+      "row_index": 120612,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 991,
+      "row_index": 123320,
+      "start_step": 95
+    },
+    {
+      "episode_idx": 1218,
+      "row_index": 148250,
+      "start_step": 88
+    },
+    {
+      "episode_idx": 1239,
+      "row_index": 150672,
+      "start_step": 53
+    },
+    {
+      "episode_idx": 1255,
+      "row_index": 152526,
+      "start_step": 35
+    },
+    {
+      "episode_idx": 1278,
+      "row_index": 155199,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 1329,
+      "row_index": 161944,
+      "start_step": 123
+    },
+    {
+      "episode_idx": 1347,
+      "row_index": 164790,
+      "start_step": 107
+    },
+    {
+      "episode_idx": 1384,
+      "row_index": 170688,
+      "start_step": 122
+    },
+    {
+      "episode_idx": 1405,
+      "row_index": 174031,
+      "start_step": 126
+    },
+    {
+      "episode_idx": 1418,
+      "row_index": 175737,
+      "start_step": 33
+    },
+    {
+      "episode_idx": 1427,
+      "row_index": 176582,
+      "start_step": 50
+    },
+    {
+      "episode_idx": 1433,
+      "row_index": 177144,
+      "start_step": 60
+    },
+    {
+      "episode_idx": 1457,
+      "row_index": 179308,
+      "start_step": 16
+    },
+    {
+      "episode_idx": 1478,
+      "row_index": 181286,
+      "start_step": 62
+    },
+    {
+      "episode_idx": 1503,
+      "row_index": 183541,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 1515,
+      "row_index": 184697,
+      "start_step": 69
+    },
+    {
+      "episode_idx": 1561,
+      "row_index": 190999,
+      "start_step": 69
+    },
+    {
+      "episode_idx": 1589,
+      "row_index": 194816,
+      "start_step": 50
+    },
+    {
+      "episode_idx": 1616,
+      "row_index": 198567,
+      "start_step": 102
+    },
+    {
+      "episode_idx": 1704,
+      "row_index": 210564,
+      "start_step": 43
+    },
+    {
+      "episode_idx": 1768,
+      "row_index": 216907,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 1775,
+      "row_index": 217560,
+      "start_step": 38
+    },
+    {
+      "episode_idx": 1823,
+      "row_index": 221839,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 1892,
+      "row_index": 227586,
+      "start_step": 52
+    },
+    {
+      "episode_idx": 1998,
+      "row_index": 239672,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 2018,
+      "row_index": 242195,
+      "start_step": 45
+    },
+    {
+      "episode_idx": 2087,
+      "row_index": 251848,
+      "start_step": 68
+    },
+    {
+      "episode_idx": 2132,
+      "row_index": 257430,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 2199,
+      "row_index": 262670,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 2320,
+      "row_index": 278208,
+      "start_step": 70
+    },
+    {
+      "episode_idx": 2325,
+      "row_index": 278760,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 2375,
+      "row_index": 282661,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 2443,
+      "row_index": 288540,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 2485,
+      "row_index": 293025,
+      "start_step": 62
+    },
+    {
+      "episode_idx": 2490,
+      "row_index": 293540,
+      "start_step": 42
+    },
+    {
+      "episode_idx": 2536,
+      "row_index": 298014,
+      "start_step": 34
+    },
+    {
+      "episode_idx": 2540,
+      "row_index": 298288,
+      "start_step": 40
+    },
+    {
+      "episode_idx": 2549,
+      "row_index": 298887,
+      "start_step": 36
+    },
+    {
+      "episode_idx": 2612,
+      "row_index": 303091,
+      "start_step": 19
+    },
+    {
+      "episode_idx": 2688,
+      "row_index": 312825,
+      "start_step": 73
+    },
+    {
+      "episode_idx": 2727,
+      "row_index": 318308,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 2731,
+      "row_index": 318694,
+      "start_step": 51
+    },
+    {
+      "episode_idx": 2747,
+      "row_index": 320270,
+      "start_step": 59
+    },
+    {
+      "episode_idx": 2759,
+      "row_index": 321421,
+      "start_step": 34
+    },
+    {
+      "episode_idx": 2808,
+      "row_index": 326248,
+      "start_step": 59
+    },
+    {
+      "episode_idx": 2814,
+      "row_index": 326814,
+      "start_step": 37
+    },
+    {
+      "episode_idx": 2853,
+      "row_index": 331822,
+      "start_step": 98
+    },
+    {
+      "episode_idx": 2860,
+      "row_index": 332796,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 2888,
+      "row_index": 336776,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 2907,
+      "row_index": 339554,
+      "start_step": 108
+    },
+    {
+      "episode_idx": 2951,
+      "row_index": 348032,
+      "start_step": 28
+    },
+    {
+      "episode_idx": 2963,
+      "row_index": 351174,
+      "start_step": 218
+    },
+    {
+      "episode_idx": 2981,
+      "row_index": 355538,
+      "start_step": 154
+    },
+    {
+      "episode_idx": 3018,
+      "row_index": 364670,
+      "start_step": 184
+    },
+    {
+      "episode_idx": 3051,
+      "row_index": 370303,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 3094,
+      "row_index": 376028,
+      "start_step": 78
+    },
+    {
+      "episode_idx": 3101,
+      "row_index": 376978,
+      "start_step": 97
+    },
+    {
+      "episode_idx": 3206,
+      "row_index": 391605,
+      "start_step": 84
+    },
+    {
+      "episode_idx": 3263,
+      "row_index": 398842,
+      "start_step": 64
+    },
+    {
+      "episode_idx": 3275,
+      "row_index": 400237,
+      "start_step": 79
+    },
+    {
+      "episode_idx": 3338,
+      "row_index": 407600,
+      "start_step": 87
+    },
+    {
+      "episode_idx": 3377,
+      "row_index": 412935,
+      "start_step": 79
+    },
+    {
+      "episode_idx": 3450,
+      "row_index": 422376,
+      "start_step": 63
+    },
+    {
+      "episode_idx": 3453,
+      "row_index": 422668,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 3464,
+      "row_index": 423797,
+      "start_step": 42
+    },
+    {
+      "episode_idx": 3484,
+      "row_index": 425872,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 3530,
+      "row_index": 430624,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 3534,
+      "row_index": 430992,
+      "start_step": 27
+    },
+    {
+      "episode_idx": 3542,
+      "row_index": 432004,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 3581,
+      "row_index": 436932,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 3611,
+      "row_index": 440763,
+      "start_step": 43
+    },
+    {
+      "episode_idx": 3701,
+      "row_index": 453502,
+      "start_step": 117
+    },
+    {
+      "episode_idx": 3705,
+      "row_index": 453991,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 3785,
+      "row_index": 465319,
+      "start_step": 102
+    },
+    {
+      "episode_idx": 3910,
+      "row_index": 484661,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 3957,
+      "row_index": 492118,
+      "start_step": 51
+    },
+    {
+      "episode_idx": 3994,
+      "row_index": 497333,
+      "start_step": 86
+    },
+    {
+      "episode_idx": 4054,
+      "row_index": 505791,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 4093,
+      "row_index": 511498,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 4120,
+      "row_index": 515481,
+      "start_step": 34
+    },
+    {
+      "episode_idx": 4155,
+      "row_index": 519837,
+      "start_step": 43
+    },
+    {
+      "episode_idx": 4159,
+      "row_index": 520177,
+      "start_step": 23
+    },
+    {
+      "episode_idx": 4192,
+      "row_index": 523144,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 4215,
+      "row_index": 525232,
+      "start_step": 38
+    },
+    {
+      "episode_idx": 4238,
+      "row_index": 527314,
+      "start_step": 50
+    },
+    {
+      "episode_idx": 4288,
+      "row_index": 531420,
+      "start_step": 24
+    },
+    {
+      "episode_idx": 4299,
+      "row_index": 532342,
+      "start_step": 44
+    },
+    {
+      "episode_idx": 4309,
+      "row_index": 533166,
+      "start_step": 48
+    },
+    {
+      "episode_idx": 4448,
+      "row_index": 546621,
+      "start_step": 80
+    },
+    {
+      "episode_idx": 4480,
+      "row_index": 551674,
+      "start_step": 45
+    },
+    {
+      "episode_idx": 4511,
+      "row_index": 556661,
+      "start_step": 103
+    },
+    {
+      "episode_idx": 4532,
+      "row_index": 560021,
+      "start_step": 124
+    },
+    {
+      "episode_idx": 4535,
+      "row_index": 560398,
+      "start_step": 24
+    },
+    {
+      "episode_idx": 4564,
+      "row_index": 563350,
+      "start_step": 37
+    },
+    {
+      "episode_idx": 4628,
+      "row_index": 567883,
+      "start_step": 26
+    },
+    {
+      "episode_idx": 4651,
+      "row_index": 570067,
+      "start_step": 132
+    },
+    {
+      "episode_idx": 4668,
+      "row_index": 572727,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 4715,
+      "row_index": 580204,
+      "start_step": 29
+    },
+    {
+      "episode_idx": 4743,
+      "row_index": 584708,
+      "start_step": 53
+    },
+    {
+      "episode_idx": 4757,
+      "row_index": 586879,
+      "start_step": 104
+    },
+    {
+      "episode_idx": 4765,
+      "row_index": 588046,
+      "start_step": 87
+    },
+    {
+      "episode_idx": 4834,
+      "row_index": 598260,
+      "start_step": 89
+    },
+    {
+      "episode_idx": 4843,
+      "row_index": 599583,
+      "start_step": 80
+    },
+    {
+      "episode_idx": 4864,
+      "row_index": 602673,
+      "start_step": 110
+    },
+    {
+      "episode_idx": 4900,
+      "row_index": 607864,
+      "start_step": 81
+    },
+    {
+      "episode_idx": 4955,
+      "row_index": 616019,
+      "start_step": 135
+    },
+    {
+      "episode_idx": 5030,
+      "row_index": 628379,
+      "start_step": 45
+    },
+    {
+      "episode_idx": 5041,
+      "row_index": 630275,
+      "start_step": 115
+    },
+    {
+      "episode_idx": 5123,
+      "row_index": 645525,
+      "start_step": 147
+    },
+    {
+      "episode_idx": 5124,
+      "row_index": 645587,
+      "start_step": 21
+    },
+    {
+      "episode_idx": 5159,
+      "row_index": 651890,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 5182,
+      "row_index": 655397,
+      "start_step": 43
+    },
+    {
+      "episode_idx": 5222,
+      "row_index": 661509,
+      "start_step": 75
+    },
+    {
+      "episode_idx": 5258,
+      "row_index": 666736,
+      "start_step": 82
+    },
+    {
+      "episode_idx": 5263,
+      "row_index": 667280,
+      "start_step": 76
+    },
+    {
+      "episode_idx": 5281,
+      "row_index": 669256,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 5382,
+      "row_index": 681146,
+      "start_step": 40
+    },
+    {
+      "episode_idx": 5388,
+      "row_index": 682005,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 5396,
+      "row_index": 683075,
+      "start_step": 37
+    },
+    {
+      "episode_idx": 5420,
+      "row_index": 686452,
+      "start_step": 102
+    },
+    {
+      "episode_idx": 5421,
+      "row_index": 686551,
+      "start_step": 63
+    },
+    {
+      "episode_idx": 5444,
+      "row_index": 689716,
+      "start_step": 54
+    },
+    {
+      "episode_idx": 5469,
+      "row_index": 692548,
+      "start_step": 21
+    },
+    {
+      "episode_idx": 5594,
+      "row_index": 703559,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 5611,
+      "row_index": 704641,
+      "start_step": 16
+    },
+    {
+      "episode_idx": 5613,
+      "row_index": 704768,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 5632,
+      "row_index": 705998,
+      "start_step": 29
+    },
+    {
+      "episode_idx": 5685,
+      "row_index": 710913,
+      "start_step": 73
+    },
+    {
+      "episode_idx": 5686,
+      "row_index": 711028,
+      "start_step": 73
+    },
+    {
+      "episode_idx": 5773,
+      "row_index": 720797,
+      "start_step": 29
+    },
+    {
+      "episode_idx": 5882,
+      "row_index": 733121,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 5892,
+      "row_index": 734611,
+      "start_step": 56
+    },
+    {
+      "episode_idx": 5898,
+      "row_index": 735522,
+      "start_step": 79
+    },
+    {
+      "episode_idx": 6022,
+      "row_index": 751284,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 6096,
+      "row_index": 761430,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 6146,
+      "row_index": 769915,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 6157,
+      "row_index": 771853,
+      "start_step": 85
+    },
+    {
+      "episode_idx": 6165,
+      "row_index": 773037,
+      "start_step": 25
+    },
+    {
+      "episode_idx": 6175,
+      "row_index": 774498,
+      "start_step": 76
+    },
+    {
+      "episode_idx": 6183,
+      "row_index": 775580,
+      "start_step": 30
+    },
+    {
+      "episode_idx": 6190,
+      "row_index": 776624,
+      "start_step": 87
+    },
+    {
+      "episode_idx": 6231,
+      "row_index": 782409,
+      "start_step": 91
+    },
+    {
+      "episode_idx": 6314,
+      "row_index": 791645,
+      "start_step": 68
+    },
+    {
+      "episode_idx": 6339,
+      "row_index": 793987,
+      "start_step": 60
+    },
+    {
+      "episode_idx": 6352,
+      "row_index": 795191,
+      "start_step": 42
+    },
+    {
+      "episode_idx": 6372,
+      "row_index": 796894,
+      "start_step": 36
+    },
+    {
+      "episode_idx": 6432,
+      "row_index": 801378,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 6475,
+      "row_index": 805571,
+      "start_step": 42
+    },
+    {
+      "episode_idx": 6527,
+      "row_index": 813925,
+      "start_step": 24
+    },
+    {
+      "episode_idx": 6546,
+      "row_index": 817058,
+      "start_step": 98
+    },
+    {
+      "episode_idx": 6554,
+      "row_index": 818340,
+      "start_step": 92
+    },
+    {
+      "episode_idx": 6619,
+      "row_index": 825758,
+      "start_step": 69
+    },
+    {
+      "episode_idx": 6620,
+      "row_index": 825814,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 6622,
+      "row_index": 826060,
+      "start_step": 56
+    },
+    {
+      "episode_idx": 6716,
+      "row_index": 834791,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 6723,
+      "row_index": 835370,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 6744,
+      "row_index": 837121,
+      "start_step": 23
+    },
+    {
+      "episode_idx": 6751,
+      "row_index": 837727,
+      "start_step": 48
+    },
+    {
+      "episode_idx": 6764,
+      "row_index": 838777,
+      "start_step": 19
+    },
+    {
+      "episode_idx": 6811,
+      "row_index": 844417,
+      "start_step": 86
+    },
+    {
+      "episode_idx": 6830,
+      "row_index": 846676,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 6852,
+      "row_index": 849334,
+      "start_step": 42
+    },
+    {
+      "episode_idx": 6853,
+      "row_index": 849459,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 6942,
+      "row_index": 862354,
+      "start_step": 100
+    },
+    {
+      "episode_idx": 6984,
+      "row_index": 867916,
+      "start_step": 64
+    },
+    {
+      "episode_idx": 7007,
+      "row_index": 870294,
+      "start_step": 27
+    },
+    {
+      "episode_idx": 7034,
+      "row_index": 873129,
+      "start_step": 27
+    },
+    {
+      "episode_idx": 7097,
+      "row_index": 879787,
+      "start_step": 16
+    },
+    {
+      "episode_idx": 7170,
+      "row_index": 887636,
+      "start_step": 54
+    },
+    {
+      "episode_idx": 7193,
+      "row_index": 890495,
+      "start_step": 56
+    },
+    {
+      "episode_idx": 7210,
+      "row_index": 892626,
+      "start_step": 62
+    },
+    {
+      "episode_idx": 7219,
+      "row_index": 893725,
+      "start_step": 36
+    },
+    {
+      "episode_idx": 7281,
+      "row_index": 901617,
+      "start_step": 106
+    },
+    {
+      "episode_idx": 7315,
+      "row_index": 906092,
+      "start_step": 59
+    },
+    {
+      "episode_idx": 7363,
+      "row_index": 912437,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 7371,
+      "row_index": 913508,
+      "start_step": 27
+    },
+    {
+      "episode_idx": 7401,
+      "row_index": 916983,
+      "start_step": 16
+    },
+    {
+      "episode_idx": 7450,
+      "row_index": 922658,
+      "start_step": 56
+    },
+    {
+      "episode_idx": 7499,
+      "row_index": 929611,
+      "start_step": 124
+    },
+    {
+      "episode_idx": 7555,
+      "row_index": 938777,
+      "start_step": 50
+    },
+    {
+      "episode_idx": 7561,
+      "row_index": 939824,
+      "start_step": 107
+    },
+    {
+      "episode_idx": 7686,
+      "row_index": 954112,
+      "start_step": 26
+    },
+    {
+      "episode_idx": 7758,
+      "row_index": 961724,
+      "start_step": 78
+    },
+    {
+      "episode_idx": 7759,
+      "row_index": 961793,
+      "start_step": 42
+    },
+    {
+      "episode_idx": 7873,
+      "row_index": 969823,
+      "start_step": 38
+    },
+    {
+      "episode_idx": 7899,
+      "row_index": 972330,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 7974,
+      "row_index": 980257,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 8036,
+      "row_index": 988687,
+      "start_step": 111
+    },
+    {
+      "episode_idx": 8042,
+      "row_index": 989436,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 8180,
+      "row_index": 1006592,
+      "start_step": 44
+    },
+    {
+      "episode_idx": 8184,
+      "row_index": 1007258,
+      "start_step": 105
+    },
+    {
+      "episode_idx": 8202,
+      "row_index": 1010193,
+      "start_step": 124
+    },
+    {
+      "episode_idx": 8250,
+      "row_index": 1017885,
+      "start_step": 40
+    },
+    {
+      "episode_idx": 8312,
+      "row_index": 1028111,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 8313,
+      "row_index": 1028306,
+      "start_step": 100
+    },
+    {
+      "episode_idx": 8327,
+      "row_index": 1030660,
+      "start_step": 116
+    },
+    {
+      "episode_idx": 8380,
+      "row_index": 1039511,
+      "start_step": 116
+    },
+    {
+      "episode_idx": 8381,
+      "row_index": 1039616,
+      "start_step": 54
+    },
+    {
+      "episode_idx": 8385,
+      "row_index": 1040270,
+      "start_step": 96
+    },
+    {
+      "episode_idx": 8391,
+      "row_index": 1041034,
+      "start_step": 26
+    },
+    {
+      "episode_idx": 8523,
+      "row_index": 1058087,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 8558,
+      "row_index": 1061767,
+      "start_step": 62
+    },
+    {
+      "episode_idx": 8659,
+      "row_index": 1073081,
+      "start_step": 31
+    },
+    {
+      "episode_idx": 8679,
+      "row_index": 1075388,
+      "start_step": 38
+    },
+    {
+      "episode_idx": 8689,
+      "row_index": 1076402,
+      "start_step": 28
+    },
+    {
+      "episode_idx": 8747,
+      "row_index": 1080640,
+      "start_step": 32
+    },
+    {
+      "episode_idx": 8818,
+      "row_index": 1088833,
+      "start_step": 128
+    },
+    {
+      "episode_idx": 8844,
+      "row_index": 1093180,
+      "start_step": 133
+    },
+    {
+      "episode_idx": 8960,
+      "row_index": 1111256,
+      "start_step": 61
+    },
+    {
+      "episode_idx": 8990,
+      "row_index": 1115624,
+      "start_step": 19
+    },
+    {
+      "episode_idx": 9038,
+      "row_index": 1118518,
+      "start_step": 33
+    },
+    {
+      "episode_idx": 9083,
+      "row_index": 1121216,
+      "start_step": 31
+    },
+    {
+      "episode_idx": 9090,
+      "row_index": 1121685,
+      "start_step": 80
+    },
+    {
+      "episode_idx": 9096,
+      "row_index": 1122291,
+      "start_step": 14
+    },
+    {
+      "episode_idx": 9148,
+      "row_index": 1128178,
+      "start_step": 77
+    },
+    {
+      "episode_idx": 9170,
+      "row_index": 1130586,
+      "start_step": 21
+    },
+    {
+      "episode_idx": 9195,
+      "row_index": 1133438,
+      "start_step": 49
+    },
+    {
+      "episode_idx": 9259,
+      "row_index": 1141025,
+      "start_step": 84
+    },
+    {
+      "episode_idx": 9271,
+      "row_index": 1142411,
+      "start_step": 54
+    },
+    {
+      "episode_idx": 9291,
+      "row_index": 1144797,
+      "start_step": 80
+    },
+    {
+      "episode_idx": 9369,
+      "row_index": 1151116,
+      "start_step": 44
+    },
+    {
+      "episode_idx": 9381,
+      "row_index": 1152060,
+      "start_step": 16
+    },
+    {
+      "episode_idx": 9386,
+      "row_index": 1152467,
+      "start_step": 18
+    },
+    {
+      "episode_idx": 9427,
+      "row_index": 1156067,
+      "start_step": 25
+    },
+    {
+      "episode_idx": 9490,
+      "row_index": 1161679,
+      "start_step": 30
+    },
+    {
+      "episode_idx": 9506,
+      "row_index": 1163733,
+      "start_step": 96
+    },
+    {
+      "episode_idx": 9520,
+      "row_index": 1165605,
+      "start_step": 64
+    },
+    {
+      "episode_idx": 9523,
+      "row_index": 1166047,
+      "start_step": 98
+    },
+    {
+      "episode_idx": 9585,
+      "row_index": 1174481,
+      "start_step": 100
+    },
+    {
+      "episode_idx": 9599,
+      "row_index": 1176247,
+      "start_step": 70
+    },
+    {
+      "episode_idx": 9616,
+      "row_index": 1178060,
+      "start_step": 30
+    },
+    {
+      "episode_idx": 9620,
+      "row_index": 1178511,
+      "start_step": 45
+    },
+    {
+      "episode_idx": 9690,
+      "row_index": 1186143,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 9722,
+      "row_index": 1189594,
+      "start_step": 62
+    },
+    {
+      "episode_idx": 9739,
+      "row_index": 1191401,
+      "start_step": 50
+    },
+    {
+      "episode_idx": 9740,
+      "row_index": 1191511,
+      "start_step": 53
+    },
+    {
+      "episode_idx": 9819,
+      "row_index": 1200393,
+      "start_step": 42
+    },
+    {
+      "episode_idx": 9877,
+      "row_index": 1207763,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 9909,
+      "row_index": 1211970,
+      "start_step": 35
+    },
+    {
+      "episode_idx": 9932,
+      "row_index": 1215193,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 10006,
+      "row_index": 1225305,
+      "start_step": 36
+    },
+    {
+      "episode_idx": 10015,
+      "row_index": 1226160,
+      "start_step": 63
+    },
+    {
+      "episode_idx": 10048,
+      "row_index": 1229178,
+      "start_step": 45
+    },
+    {
+      "episode_idx": 10087,
+      "row_index": 1232764,
+      "start_step": 43
+    },
+    {
+      "episode_idx": 10091,
+      "row_index": 1233108,
+      "start_step": 19
+    },
+    {
+      "episode_idx": 10138,
+      "row_index": 1241122,
+      "start_step": 137
+    },
+    {
+      "episode_idx": 10144,
+      "row_index": 1242172,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 10164,
+      "row_index": 1245968,
+      "start_step": 147
+    },
+    {
+      "episode_idx": 10190,
+      "row_index": 1250728,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 10302,
+      "row_index": 1268436,
+      "start_step": 78
+    },
+    {
+      "episode_idx": 10305,
+      "row_index": 1268855,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 10310,
+      "row_index": 1269568,
+      "start_step": 74
+    },
+    {
+      "episode_idx": 10313,
+      "row_index": 1270003,
+      "start_step": 83
+    },
+    {
+      "episode_idx": 10345,
+      "row_index": 1274481,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 10353,
+      "row_index": 1275688,
+      "start_step": 88
+    },
+    {
+      "episode_idx": 10367,
+      "row_index": 1277629,
+      "start_step": 41
+    },
+    {
+      "episode_idx": 10377,
+      "row_index": 1279119,
+      "start_step": 111
+    },
+    {
+      "episode_idx": 10397,
+      "row_index": 1281946,
+      "start_step": 98
+    },
+    {
+      "episode_idx": 10466,
+      "row_index": 1294772,
+      "start_step": 102
+    },
+    {
+      "episode_idx": 10521,
+      "row_index": 1303080,
+      "start_step": 34
+    },
+    {
+      "episode_idx": 10588,
+      "row_index": 1307644,
+      "start_step": 42
+    },
+    {
+      "episode_idx": 10605,
+      "row_index": 1308775,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 10635,
+      "row_index": 1313305,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 10655,
+      "row_index": 1316367,
+      "start_step": 109
+    },
+    {
+      "episode_idx": 10677,
+      "row_index": 1319636,
+      "start_step": 78
+    },
+    {
+      "episode_idx": 10685,
+      "row_index": 1320784,
+      "start_step": 26
+    },
+    {
+      "episode_idx": 10747,
+      "row_index": 1327973,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 10767,
+      "row_index": 1329937,
+      "start_step": 51
+    },
+    {
+      "episode_idx": 10782,
+      "row_index": 1331422,
+      "start_step": 66
+    },
+    {
+      "episode_idx": 10876,
+      "row_index": 1345709,
+      "start_step": 104
+    },
+    {
+      "episode_idx": 10885,
+      "row_index": 1347220,
+      "start_step": 76
+    },
+    {
+      "episode_idx": 10910,
+      "row_index": 1351367,
+      "start_step": 58
+    },
+    {
+      "episode_idx": 10922,
+      "row_index": 1352756,
+      "start_step": 55
+    },
+    {
+      "episode_idx": 11008,
+      "row_index": 1362691,
+      "start_step": 14
+    },
+    {
+      "episode_idx": 11012,
+      "row_index": 1363322,
+      "start_step": 85
+    },
+    {
+      "episode_idx": 11013,
+      "row_index": 1363482,
+      "start_step": 97
+    },
+    {
+      "episode_idx": 11024,
+      "row_index": 1365096,
+      "start_step": 83
+    },
+    {
+      "episode_idx": 11035,
+      "row_index": 1366658,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 11045,
+      "row_index": 1368141,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 11071,
+      "row_index": 1372022,
+      "start_step": 53
+    },
+    {
+      "episode_idx": 11084,
+      "row_index": 1374009,
+      "start_step": 116
+    },
+    {
+      "episode_idx": 11096,
+      "row_index": 1375790,
+      "start_step": 121
+    },
+    {
+      "episode_idx": 11247,
+      "row_index": 1397568,
+      "start_step": 65
+    },
+    {
+      "episode_idx": 11268,
+      "row_index": 1401255,
+      "start_step": 119
+    },
+    {
+      "episode_idx": 11277,
+      "row_index": 1402729,
+      "start_step": 36
+    },
+    {
+      "episode_idx": 11338,
+      "row_index": 1413627,
+      "start_step": 43
+    },
+    {
+      "episode_idx": 11466,
+      "row_index": 1435517,
+      "start_step": 86
+    },
+    {
+      "episode_idx": 11478,
+      "row_index": 1437280,
+      "start_step": 61
+    },
+    {
+      "episode_idx": 11539,
+      "row_index": 1446568,
+      "start_step": 60
+    },
+    {
+      "episode_idx": 11549,
+      "row_index": 1448190,
+      "start_step": 112
+    },
+    {
+      "episode_idx": 11564,
+      "row_index": 1450450,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 11590,
+      "row_index": 1454616,
+      "start_step": 101
+    },
+    {
+      "episode_idx": 11619,
+      "row_index": 1458875,
+      "start_step": 59
+    },
+    {
+      "episode_idx": 11627,
+      "row_index": 1459605,
+      "start_step": 37
+    },
+    {
+      "episode_idx": 11673,
+      "row_index": 1463925,
+      "start_step": 33
+    },
+    {
+      "episode_idx": 11691,
+      "row_index": 1465620,
+      "start_step": 36
+    },
+    {
+      "episode_idx": 11741,
+      "row_index": 1471142,
+      "start_step": 83
+    },
+    {
+      "episode_idx": 11777,
+      "row_index": 1475632,
+      "start_step": 73
+    },
+    {
+      "episode_idx": 11782,
+      "row_index": 1476281,
+      "start_step": 97
+    },
+    {
+      "episode_idx": 11793,
+      "row_index": 1477612,
+      "start_step": 53
+    },
+    {
+      "episode_idx": 11816,
+      "row_index": 1480511,
+      "start_step": 77
+    },
+    {
+      "episode_idx": 11948,
+      "row_index": 1491330,
+      "start_step": 74
+    },
+    {
+      "episode_idx": 11983,
+      "row_index": 1495889,
+      "start_step": 48
+    },
+    {
+      "episode_idx": 12057,
+      "row_index": 1506389,
+      "start_step": 18
+    },
+    {
+      "episode_idx": 12079,
+      "row_index": 1509863,
+      "start_step": 126
+    },
+    {
+      "episode_idx": 12083,
+      "row_index": 1510400,
+      "start_step": 51
+    },
+    {
+      "episode_idx": 12119,
+      "row_index": 1515896,
+      "start_step": 39
+    },
+    {
+      "episode_idx": 12140,
+      "row_index": 1518667,
+      "start_step": 37
+    },
+    {
+      "episode_idx": 12157,
+      "row_index": 1520872,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 12175,
+      "row_index": 1523275,
+      "start_step": 60
+    },
+    {
+      "episode_idx": 12194,
+      "row_index": 1525742,
+      "start_step": 38
+    },
+    {
+      "episode_idx": 12238,
+      "row_index": 1531985,
+      "start_step": 41
+    },
+    {
+      "episode_idx": 12246,
+      "row_index": 1533323,
+      "start_step": 107
+    },
+    {
+      "episode_idx": 12351,
+      "row_index": 1549557,
+      "start_step": 52
+    },
+    {
+      "episode_idx": 12423,
+      "row_index": 1559995,
+      "start_step": 50
+    },
+    {
+      "episode_idx": 12438,
+      "row_index": 1561246,
+      "start_step": 56
+    },
+    {
+      "episode_idx": 12473,
+      "row_index": 1564113,
+      "start_step": 18
+    },
+    {
+      "episode_idx": 12515,
+      "row_index": 1567610,
+      "start_step": 29
+    },
+    {
+      "episode_idx": 12532,
+      "row_index": 1570112,
+      "start_step": 144
+    },
+    {
+      "episode_idx": 12542,
+      "row_index": 1572065,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 12588,
+      "row_index": 1581617,
+      "start_step": 169
+    },
+    {
+      "episode_idx": 12595,
+      "row_index": 1583025,
+      "start_step": 142
+    },
+    {
+      "episode_idx": 12629,
+      "row_index": 1589274,
+      "start_step": 17
+    },
+    {
+      "episode_idx": 12744,
+      "row_index": 1597524,
+      "start_step": 99
+    },
+    {
+      "episode_idx": 12812,
+      "row_index": 1607849,
+      "start_step": 88
+    },
+    {
+      "episode_idx": 12901,
+      "row_index": 1620440,
+      "start_step": 113
+    },
+    {
+      "episode_idx": 12903,
+      "row_index": 1620635,
+      "start_step": 30
+    },
+    {
+      "episode_idx": 12992,
+      "row_index": 1631334,
+      "start_step": 86
+    },
+    {
+      "episode_idx": 13057,
+      "row_index": 1638846,
+      "start_step": 94
+    },
+    {
+      "episode_idx": 13066,
+      "row_index": 1639917,
+      "start_step": 85
+    },
+    {
+      "episode_idx": 13168,
+      "row_index": 1653373,
+      "start_step": 85
+    },
+    {
+      "episode_idx": 13195,
+      "row_index": 1657486,
+      "start_step": 94
+    },
+    {
+      "episode_idx": 13225,
+      "row_index": 1662008,
+      "start_step": 56
+    },
+    {
+      "episode_idx": 13279,
+      "row_index": 1670271,
+      "start_step": 63
+    },
+    {
+      "episode_idx": 13305,
+      "row_index": 1674302,
+      "start_step": 116
+    },
+    {
+      "episode_idx": 13310,
+      "row_index": 1674973,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 13338,
+      "row_index": 1679463,
+      "start_step": 30
+    },
+    {
+      "episode_idx": 13381,
+      "row_index": 1687495,
+      "start_step": 64
+    },
+    {
+      "episode_idx": 13469,
+      "row_index": 1701408,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 13493,
+      "row_index": 1704251,
+      "start_step": 68
+    },
+    {
+      "episode_idx": 13594,
+      "row_index": 1716153,
+      "start_step": 52
+    },
+    {
+      "episode_idx": 13596,
+      "row_index": 1716352,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 13615,
+      "row_index": 1718599,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 13622,
+      "row_index": 1719443,
+      "start_step": 38
+    },
+    {
+      "episode_idx": 13672,
+      "row_index": 1725579,
+      "start_step": 89
+    },
+    {
+      "episode_idx": 13764,
+      "row_index": 1735210,
+      "start_step": 28
+    },
+    {
+      "episode_idx": 13775,
+      "row_index": 1735930,
+      "start_step": 33
+    },
+    {
+      "episode_idx": 13791,
+      "row_index": 1736964,
+      "start_step": 27
+    },
+    {
+      "episode_idx": 13796,
+      "row_index": 1737283,
+      "start_step": 21
+    },
+    {
+      "episode_idx": 13842,
+      "row_index": 1740552,
+      "start_step": 60
+    },
+    {
+      "episode_idx": 13857,
+      "row_index": 1742236,
+      "start_step": 49
+    },
+    {
+      "episode_idx": 13927,
+      "row_index": 1750156,
+      "start_step": 59
+    },
+    {
+      "episode_idx": 13946,
+      "row_index": 1752771,
+      "start_step": 23
+    },
+    {
+      "episode_idx": 13967,
+      "row_index": 1756518,
+      "start_step": 74
+    },
+    {
+      "episode_idx": 14013,
+      "row_index": 1764624,
+      "start_step": 84
+    },
+    {
+      "episode_idx": 14074,
+      "row_index": 1772505,
+      "start_step": 64
+    },
+    {
+      "episode_idx": 14140,
+      "row_index": 1778860,
+      "start_step": 149
+    },
+    {
+      "episode_idx": 14167,
+      "row_index": 1783708,
+      "start_step": 56
+    },
+    {
+      "episode_idx": 14173,
+      "row_index": 1784801,
+      "start_step": 51
+    },
+    {
+      "episode_idx": 14211,
+      "row_index": 1791745,
+      "start_step": 41
+    },
+    {
+      "episode_idx": 14262,
+      "row_index": 1799176,
+      "start_step": 50
+    },
+    {
+      "episode_idx": 14334,
+      "row_index": 1805813,
+      "start_step": 63
+    },
+    {
+      "episode_idx": 14352,
+      "row_index": 1807598,
+      "start_step": 52
+    },
+    {
+      "episode_idx": 14368,
+      "row_index": 1809307,
+      "start_step": 65
+    },
+    {
+      "episode_idx": 14380,
+      "row_index": 1810528,
+      "start_step": 14
+    },
+    {
+      "episode_idx": 14400,
+      "row_index": 1812681,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 14435,
+      "row_index": 1816420,
+      "start_step": 76
+    },
+    {
+      "episode_idx": 14503,
+      "row_index": 1828487,
+      "start_step": 135
+    },
+    {
+      "episode_idx": 14507,
+      "row_index": 1829173,
+      "start_step": 77
+    },
+    {
+      "episode_idx": 14517,
+      "row_index": 1831095,
+      "start_step": 139
+    },
+    {
+      "episode_idx": 14574,
+      "row_index": 1839721,
+      "start_step": 83
+    },
+    {
+      "episode_idx": 14638,
+      "row_index": 1847464,
+      "start_step": 18
+    },
+    {
+      "episode_idx": 14652,
+      "row_index": 1849451,
+      "start_step": 59
+    },
+    {
+      "episode_idx": 14693,
+      "row_index": 1855871,
+      "start_step": 83
+    },
+    {
+      "episode_idx": 14954,
+      "row_index": 1879639,
+      "start_step": 24
+    },
+    {
+      "episode_idx": 14977,
+      "row_index": 1881614,
+      "start_step": 44
+    },
+    {
+      "episode_idx": 14996,
+      "row_index": 1883213,
+      "start_step": 28
+    },
+    {
+      "episode_idx": 15011,
+      "row_index": 1884511,
+      "start_step": 51
+    },
+    {
+      "episode_idx": 15065,
+      "row_index": 1890030,
+      "start_step": 68
+    },
+    {
+      "episode_idx": 15071,
+      "row_index": 1890901,
+      "start_step": 87
+    },
+    {
+      "episode_idx": 15072,
+      "row_index": 1891034,
+      "start_step": 78
+    },
+    {
+      "episode_idx": 15083,
+      "row_index": 1892591,
+      "start_step": 73
+    },
+    {
+      "episode_idx": 15127,
+      "row_index": 1898807,
+      "start_step": 41
+    },
+    {
+      "episode_idx": 15140,
+      "row_index": 1900710,
+      "start_step": 98
+    },
+    {
+      "episode_idx": 15160,
+      "row_index": 1903698,
+      "start_step": 126
+    },
+    {
+      "episode_idx": 15196,
+      "row_index": 1909237,
+      "start_step": 121
+    },
+    {
+      "episode_idx": 15275,
+      "row_index": 1919968,
+      "start_step": 54
+    },
+    {
+      "episode_idx": 15337,
+      "row_index": 1925967,
+      "start_step": 39
+    },
+    {
+      "episode_idx": 15341,
+      "row_index": 1926349,
+      "start_step": 33
+    },
+    {
+      "episode_idx": 15374,
+      "row_index": 1928945,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 15476,
+      "row_index": 1936152,
+      "start_step": 20
+    },
+    {
+      "episode_idx": 15528,
+      "row_index": 1939943,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 15556,
+      "row_index": 1942101,
+      "start_step": 53
+    },
+    {
+      "episode_idx": 15614,
+      "row_index": 1948535,
+      "start_step": 49
+    },
+    {
+      "episode_idx": 15631,
+      "row_index": 1950430,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 15639,
+      "row_index": 1951319,
+      "start_step": 58
+    },
+    {
+      "episode_idx": 15655,
+      "row_index": 1953198,
+      "start_step": 161
+    },
+    {
+      "episode_idx": 15706,
+      "row_index": 1963573,
+      "start_step": 81
+    },
+    {
+      "episode_idx": 15782,
+      "row_index": 1975822,
+      "start_step": 52
+    },
+    {
+      "episode_idx": 15796,
+      "row_index": 1976876,
+      "start_step": 14
+    },
+    {
+      "episode_idx": 15798,
+      "row_index": 1977039,
+      "start_step": 21
+    },
+    {
+      "episode_idx": 15822,
+      "row_index": 1978931,
+      "start_step": 41
+    },
+    {
+      "episode_idx": 15883,
+      "row_index": 1985088,
+      "start_step": 88
+    },
+    {
+      "episode_idx": 15903,
+      "row_index": 1987692,
+      "start_step": 92
+    },
+    {
+      "episode_idx": 15962,
+      "row_index": 1995564,
+      "start_step": 102
+    },
+    {
+      "episode_idx": 15980,
+      "row_index": 1998770,
+      "start_step": 104
+    },
+    {
+      "episode_idx": 16024,
+      "row_index": 2006551,
+      "start_step": 53
+    },
+    {
+      "episode_idx": 16095,
+      "row_index": 2019857,
+      "start_step": 37
+    },
+    {
+      "episode_idx": 16180,
+      "row_index": 2037233,
+      "start_step": 28
+    },
+    {
+      "episode_idx": 16230,
+      "row_index": 2048669,
+      "start_step": 14
+    },
+    {
+      "episode_idx": 16274,
+      "row_index": 2057156,
+      "start_step": 63
+    },
+    {
+      "episode_idx": 16355,
+      "row_index": 2065490,
+      "start_step": 54
+    },
+    {
+      "episode_idx": 16405,
+      "row_index": 2070551,
+      "start_step": 51
+    },
+    {
+      "episode_idx": 16437,
+      "row_index": 2073796,
+      "start_step": 64
+    },
+    {
+      "episode_idx": 16439,
+      "row_index": 2074004,
+      "start_step": 70
+    },
+    {
+      "episode_idx": 16495,
+      "row_index": 2079514,
+      "start_step": 52
+    },
+    {
+      "episode_idx": 16515,
+      "row_index": 2081460,
+      "start_step": 58
+    },
+    {
+      "episode_idx": 16523,
+      "row_index": 2082235,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 16551,
+      "row_index": 2084937,
+      "start_step": 43
+    },
+    {
+      "episode_idx": 16562,
+      "row_index": 2085979,
+      "start_step": 18
+    },
+    {
+      "episode_idx": 16588,
+      "row_index": 2089132,
+      "start_step": 73
+    },
+    {
+      "episode_idx": 16602,
+      "row_index": 2090807,
+      "start_step": 54
+    },
+    {
+      "episode_idx": 16689,
+      "row_index": 2102045,
+      "start_step": 117
+    },
+    {
+      "episode_idx": 16712,
+      "row_index": 2105371,
+      "start_step": 39
+    },
+    {
+      "episode_idx": 16742,
+      "row_index": 2109843,
+      "start_step": 71
+    },
+    {
+      "episode_idx": 16778,
+      "row_index": 2113930,
+      "start_step": 18
+    },
+    {
+      "episode_idx": 16850,
+      "row_index": 2117459,
+      "start_step": 19
+    },
+    {
+      "episode_idx": 17051,
+      "row_index": 2135167,
+      "start_step": 21
+    },
+    {
+      "episode_idx": 17072,
+      "row_index": 2136943,
+      "start_step": 114
+    },
+    {
+      "episode_idx": 17126,
+      "row_index": 2145489,
+      "start_step": 74
+    },
+    {
+      "episode_idx": 17135,
+      "row_index": 2146959,
+      "start_step": 113
+    },
+    {
+      "episode_idx": 17205,
+      "row_index": 2156840,
+      "start_step": 19
+    },
+    {
+      "episode_idx": 17207,
+      "row_index": 2157151,
+      "start_step": 78
+    },
+    {
+      "episode_idx": 17241,
+      "row_index": 2161416,
+      "start_step": 59
+    },
+    {
+      "episode_idx": 17259,
+      "row_index": 2163640,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 17307,
+      "row_index": 2172631,
+      "start_step": 150
+    },
+    {
+      "episode_idx": 17316,
+      "row_index": 2174427,
+      "start_step": 110
+    },
+    {
+      "episode_idx": 17352,
+      "row_index": 2181820,
+      "start_step": 159
+    },
+    {
+      "episode_idx": 17357,
+      "row_index": 2182703,
+      "start_step": 22
+    },
+    {
+      "episode_idx": 17429,
+      "row_index": 2191624,
+      "start_step": 69
+    },
+    {
+      "episode_idx": 17434,
+      "row_index": 2192121,
+      "start_step": 56
+    },
+    {
+      "episode_idx": 17489,
+      "row_index": 2197752,
+      "start_step": 45
+    },
+    {
+      "episode_idx": 17585,
+      "row_index": 2208213,
+      "start_step": 60
+    },
+    {
+      "episode_idx": 17596,
+      "row_index": 2209806,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 17650,
+      "row_index": 2217659,
+      "start_step": 16
+    },
+    {
+      "episode_idx": 17728,
+      "row_index": 2228681,
+      "start_step": 21
+    },
+    {
+      "episode_idx": 17808,
+      "row_index": 2241580,
+      "start_step": 72
+    },
+    {
+      "episode_idx": 17835,
+      "row_index": 2246820,
+      "start_step": 101
+    },
+    {
+      "episode_idx": 17838,
+      "row_index": 2247373,
+      "start_step": 75
+    },
+    {
+      "episode_idx": 17858,
+      "row_index": 2251308,
+      "start_step": 150
+    },
+    {
+      "episode_idx": 17890,
+      "row_index": 2256654,
+      "start_step": 61
+    },
+    {
+      "episode_idx": 17892,
+      "row_index": 2256907,
+      "start_step": 42
+    },
+    {
+      "episode_idx": 17924,
+      "row_index": 2261298,
+      "start_step": 81
+    },
+    {
+      "episode_idx": 17927,
+      "row_index": 2261663,
+      "start_step": 38
+    },
+    {
+      "episode_idx": 17980,
+      "row_index": 2268788,
+      "start_step": 49
+    },
+    {
+      "episode_idx": 17982,
+      "row_index": 2268963,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 18018,
+      "row_index": 2272158,
+      "start_step": 37
+    },
+    {
+      "episode_idx": 18128,
+      "row_index": 2282220,
+      "start_step": 15
+    },
+    {
+      "episode_idx": 18143,
+      "row_index": 2283674,
+      "start_step": 44
+    },
+    {
+      "episode_idx": 18155,
+      "row_index": 2284795,
+      "start_step": 25
+    },
+    {
+      "episode_idx": 18175,
+      "row_index": 2286694,
+      "start_step": 24
+    },
+    {
+      "episode_idx": 18181,
+      "row_index": 2287270,
+      "start_step": 23
+    },
+    {
+      "episode_idx": 18218,
+      "row_index": 2291091,
+      "start_step": 70
+    },
+    {
+      "episode_idx": 18242,
+      "row_index": 2293538,
+      "start_step": 69
+    },
+    {
+      "episode_idx": 18271,
+      "row_index": 2296453,
+      "start_step": 26
+    },
+    {
+      "episode_idx": 18334,
+      "row_index": 2301446,
+      "start_step": 24
+    },
+    {
+      "episode_idx": 18476,
+      "row_index": 2314107,
+      "start_step": 61
+    },
+    {
+      "episode_idx": 18504,
+      "row_index": 2316998,
+      "start_step": 75
+    },
+    {
+      "episode_idx": 18526,
+      "row_index": 2319298,
+      "start_step": 65
+    },
+    {
+      "episode_idx": 18540,
+      "row_index": 2320760,
+      "start_step": 57
+    },
+    {
+      "episode_idx": 18552,
+      "row_index": 2322010,
+      "start_step": 47
+    },
+    {
+      "episode_idx": 18564,
+      "row_index": 2323263,
+      "start_step": 40
+    },
+    {
+      "episode_idx": 18605,
+      "row_index": 2327757,
+      "start_step": 61
+    },
+    {
+      "episode_idx": 18618,
+      "row_index": 2329184,
+      "start_step": 19
+    },
+    {
+      "episode_idx": 18631,
+      "row_index": 2330680,
+      "start_step": 46
+    },
+    {
+      "episode_idx": 18647,
+      "row_index": 2332524,
+      "start_step": 82
+    }
+  ],
+  "seed": 9101,
+  "split": "val",
+  "split_seed": 9001,
+  "test_split": 0.1,
+  "train_split": 0.8,
+  "val_split": 0.1
+}

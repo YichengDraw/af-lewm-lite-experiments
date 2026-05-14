@@ -10,6 +10,4 @@ flowchart LR
   H --> I["Env action<br/>inverse normalize + clip"]
   C --> J["Appearance projector<br/>app_emb"]
   J --> K["AF v1 shaping losses<br/>invariance + independence"]
-  J --> L["AF v2 nuisance losses<br/>appearance head + GRL head"]
   K --> M["Training objective only"]
-  L --> M

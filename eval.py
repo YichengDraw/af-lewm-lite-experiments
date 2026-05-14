@@ -1,5 +1,6 @@
 import os
 import sys
+import hashlib
 import json
 from copy import deepcopy
 from pathlib import Path
@@ -56,6 +57,81 @@ def get_episodes_length(dataset, episodes):
     for ep_id in episodes:
         lengths.append(np.max(step_idx[episode_idx == ep_id]) + 1)
     return np.array(lengths)
+
+
+def _sha256_json(value: Any) -> str:
+    payload = json.dumps(to_jsonable(value), sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _load_eval_manifest(path: str | None) -> dict[str, Any] | None:
+    if not path:
+        return None
+    manifest_path = Path(path).expanduser()
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Eval manifest does not exist: {manifest_path}")
+    manifest = json.loads(manifest_path.read_text())
+    rows = manifest.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"Eval manifest has no rows: {manifest_path}")
+    manifest["manifest_path"] = str(manifest_path)
+    manifest["manifest_sha256"] = _sha256_json(rows)
+    return manifest
+
+
+def _row_split_guard(manifest, split_metadata_path: Path | None):
+    if manifest is None or split_metadata_path is None or not split_metadata_path.exists():
+        return
+    split_name = manifest.get("split")
+    if not split_name:
+        return
+    split_metadata = json.loads(split_metadata_path.read_text())
+    allowed_episodes = split_metadata.get(f"{split_name}_episodes")
+    if allowed_episodes is None:
+        raise ValueError(
+            f"Manifest requests split '{split_name}', but {split_metadata_path} "
+            f"does not contain {split_name}_episodes"
+        )
+    allowed = {int(ep) for ep in allowed_episodes}
+    manifest_episodes = {int(row["episode_idx"]) for row in manifest["rows"]}
+    missing = sorted(manifest_episodes - allowed)
+    if missing:
+        raise ValueError(
+            f"Eval manifest contains episodes outside split '{split_name}': {missing[:10]}"
+        )
+
+
+def _select_eval_rows_from_manifest(dataset, manifest, history_span, goal_offset_steps):
+    row_indices = np.asarray([int(row["row_index"]) for row in manifest["rows"]], dtype=np.int64)
+    eval_rows = dataset.get_row_data(row_indices)
+    col_name = "episode_idx" if "episode_idx" in dataset.column_names else "ep_idx"
+    eval_episodes = np.asarray(eval_rows[col_name], dtype=np.int64)
+    eval_start_idx = np.asarray(eval_rows["step_idx"], dtype=np.int64)
+    manifest_episodes = np.asarray(
+        [int(row["episode_idx"]) for row in manifest["rows"]], dtype=np.int64
+    )
+    manifest_start_idx = np.asarray(
+        [int(row["start_step"]) for row in manifest["rows"]], dtype=np.int64
+    )
+    if not np.array_equal(eval_episodes, manifest_episodes):
+        raise ValueError("Eval manifest episode ids do not match dataset row data")
+    if not np.array_equal(eval_start_idx, manifest_start_idx):
+        raise ValueError("Eval manifest start steps do not match dataset row data")
+    if np.any(eval_start_idx < history_span - 1):
+        raise ValueError("Eval manifest has starts before the model history window")
+    episode_len = get_episodes_length(dataset, np.unique(eval_episodes))
+    max_start_by_ep = {
+        int(ep): int(length - goal_offset_steps - 1)
+        for ep, length in zip(np.unique(eval_episodes), episode_len)
+    }
+    invalid = [
+        (int(ep), int(step))
+        for ep, step in zip(eval_episodes, eval_start_idx)
+        if int(step) > max_start_by_ep[int(ep)]
+    ]
+    if invalid:
+        raise ValueError(f"Eval manifest has invalid goal offsets: {invalid[:10]}")
+    return row_indices, eval_episodes, eval_start_idx
 
 
 def get_dataset(cfg, dataset_name):
@@ -644,6 +720,7 @@ def run(cfg: DictConfig):
     ep_indices, _ = np.unique(dataset.get_col_data(col_name), return_index=True)
     normalizer_episodes, normalizer_metadata = resolve_normalizer_scope(dataset, policy)
     process = build_processors(cfg, dataset, normalizer_episodes)
+    eval_manifest = _load_eval_manifest(cfg.eval.get("manifest_path"))
     model_history_size = 1
     history_span = 1
     actual_solver_metadata = {}
@@ -684,6 +761,13 @@ def run(cfg: DictConfig):
     else:
         policy = swm.policy.RandomPolicy()
 
+    if eval_manifest is not None:
+        with open_dict(cfg):
+            cfg.eval.num_eval = len(eval_manifest["rows"])
+            cfg.world.num_envs = len(eval_manifest["rows"])
+        split_path = normalizer_metadata.get("split_metadata_path")
+        _row_split_guard(eval_manifest, Path(split_path) if split_path else None)
+
     cfg.world.max_episode_steps = 2 * cfg.eval.eval_budget
     world = swm.World(**cfg.world, image_shape=(224, 224))
 
@@ -704,23 +788,31 @@ def run(cfg: DictConfig):
     valid_mask = (step_idx >= min_start_idx) & (step_idx <= max_start_per_row)
     valid_indices = np.nonzero(valid_mask)[0]
     print(valid_mask.sum(), "valid starting points found for evaluation.")
-    if len(valid_indices) < cfg.eval.num_eval:
-        raise ValueError(
-            f"Not enough valid starting points for evaluation: "
-            f"requested {cfg.eval.num_eval}, found {len(valid_indices)}"
+    if eval_manifest is not None:
+        random_episode_indices, eval_episodes, eval_start_idx = _select_eval_rows_from_manifest(
+            dataset,
+            eval_manifest,
+            history_span,
+            int(cfg.eval.goal_offset_steps),
         )
+    else:
+        if len(valid_indices) < cfg.eval.num_eval:
+            raise ValueError(
+                f"Not enough valid starting points for evaluation: "
+                f"requested {cfg.eval.num_eval}, found {len(valid_indices)}"
+            )
 
-    g = np.random.default_rng(cfg.seed)
-    random_episode_indices = g.choice(
-        len(valid_indices), size=cfg.eval.num_eval, replace=False
-    )
-    random_episode_indices = np.sort(valid_indices[random_episode_indices])
+        g = np.random.default_rng(cfg.seed)
+        random_episode_indices = g.choice(
+            len(valid_indices), size=cfg.eval.num_eval, replace=False
+        )
+        random_episode_indices = np.sort(valid_indices[random_episode_indices])
+
+        eval_rows = dataset.get_row_data(random_episode_indices)
+        eval_episodes = eval_rows[col_name]
+        eval_start_idx = eval_rows["step_idx"]
 
     print(random_episode_indices)
-
-    eval_rows = dataset.get_row_data(random_episode_indices)
-    eval_episodes = eval_rows[col_name]
-    eval_start_idx = eval_rows["step_idx"]
 
     if len(eval_episodes) < cfg.eval.num_eval:
         raise ValueError("Not enough episodes with sufficient length for evaluation.")
@@ -751,6 +843,17 @@ def run(cfg: DictConfig):
             "eval_episodes": np.asarray(eval_episodes).tolist(),
             "eval_start_idx": np.asarray(eval_start_idx).tolist(),
             "normalizer_metadata": normalizer_metadata,
+            "eval_manifest": (
+                {
+                    "manifest_path": eval_manifest.get("manifest_path"),
+                    "manifest_sha256": eval_manifest.get("manifest_sha256"),
+                    "split": eval_manifest.get("split"),
+                    "size": len(eval_manifest["rows"]),
+                    "seed": eval_manifest.get("seed"),
+                }
+                if eval_manifest is not None
+                else None
+            ),
             **actual_solver_metadata,
         }
     )

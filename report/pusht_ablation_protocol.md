@@ -1,4 +1,8 @@
-# PushT Appearance-Factored LeWM-lite Ablation Protocol
+# PushT Appearance-Factored LeWM Ablation Protocol
+
+This is the historical Stage 1/2 ablation protocol. The current primary result
+is the Stage 3 matched-budget baseline vs AF-LeWM v1 comparison in
+`report/pusht_stage3_protocol.md`.
 
 ## Goal
 
@@ -8,7 +12,7 @@ The decision uses planning success as the hard metric and latent diagnostics as 
 
 ## Stage 1: Structural Screen
 
-Run the current short reliable budget for all Stage 1 variants:
+Run the historical short budget for all Stage 1 variants:
 
 ```powershell
 python tools/run_pusht_ablation.py --mode all --stage stage1
@@ -54,6 +58,9 @@ Prefer the simplest structure that wins or ties within noise.
 - Promote a simplified v2 only if it beats v1 on aggregate success and shows better latent factorization.
 - Treat full v2 as exploratory unless it beats v1 consistently across both Stage 2 train seeds.
 - If baseline catches the AF variants, pause the AF claim and inspect augmentation/loss mismatch before scaling further.
+
+Stage 3 followed this rule: it promoted `v1_current` to a larger matched
+comparison and found no reliable final test1000 advantage over baseline.
 
 ## Outputs
 

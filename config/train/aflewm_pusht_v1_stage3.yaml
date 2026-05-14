@@ -1,0 +1,89 @@
+defaults:
+  - _self_
+  - data: pusht
+
+output_model_name: aflewm_pusht_v1_stage3
+subdir: runs/${data.dataset.name}/${output_model_name}
+
+num_workers: 6
+train_split: 0.8
+val_split: 0.1
+test_split: 0.1
+split_seed: 9001
+seed: 3072
+img_size: 224
+patch_size: 14
+encoder_scale: tiny
+dump_object: True
+save_weights: True
+object_epoch_interval: 5
+resume: False
+
+trainer:
+  max_epochs: 50
+  devices: auto
+  accelerator: gpu
+  precision: bf16
+  gradient_clip_val: 1.0
+  limit_train_batches: 1000
+  limit_val_batches: 50
+  log_every_n_steps: 50
+
+loader:
+  batch_size: 96
+  num_workers: ${num_workers}
+  persistent_workers: True
+  prefetch_factor: 3
+  pin_memory: True
+
+optimizer:
+  type: AdamW
+  lr: 5e-5
+  weight_decay: 1e-3
+
+wandb:
+  enabled: True
+  config:
+    entity: ${oc.env:WANDB_ENTITY,yicheng132024-southern-university-of-science-technology}
+    project: ${oc.env:WANDB_PROJECT,af-lewm-stage3}
+    name: ${output_model_name}
+    id: ${subdir}
+    resume: allow
+    log_model: False
+
+wm:
+  type: lewm
+  history_size: 3
+  num_preds: 1
+  embed_dim: 192
+
+predictor:
+  depth: 6
+  heads: 16
+  mlp_dim: 2048
+  dim_head: 64
+  dropout: 0.1
+  emb_dropout: 0.0
+
+loss:
+  sigreg:
+    weight: 0.09
+    kwargs:
+      knots: 17
+      num_proj: 1024
+
+aflwm:
+  enabled: True
+  appearance_dim: 64
+  projector_hidden_dim: 512
+  stats_hidden_dim: 256
+  loss:
+    invariance_weight: 0.1
+    independence_weight: 0.05
+    stats_weight: 0.0
+  augment:
+    brightness: 0.25
+    contrast: 0.25
+    saturation: 0.15
+    grayscale_prob: 0.1
+    noise_std: 0.01

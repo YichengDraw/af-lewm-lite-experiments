@@ -1,5 +1,9 @@
 # PushT Ablation Stage 2 Findings
 
+This is a historical reliability check. It promoted `v1_current` to the Stage 3
+matched-budget comparison; the current primary result is the Stage 3 test1000
+table in `report/pusht_stage3_protocol.md`.
+
 Stage 2 was run locally on the RTX 4070 Laptop GPU. Training used source
 commit `39ac7a30`; reports were regenerated with commit `1115bf8`. No rented
 GPU was used.
@@ -62,7 +66,7 @@ The exact answer to the baseline comparison is stage-dependent. In Stage 1,
 `v1_current` and `v2_app_nuisance_only` were above baseline, and three other
 v2-family rows tied or trailed baseline. In Stage 2, both scaled AF candidates
 were below baseline at epoch 25 and epoch 50. The margins are small in absolute
-success count, but the larger reliability check does not support AF-LeWM-lite as
+success count, but the larger reliability check does not support AF-LeWM as
 a robust PushT improvement under this setup.
 
 `v1_current` has the cleaner factorization diagnostics: epoch 50
@@ -80,11 +84,11 @@ planning latent.
 
 ## Decision
 
-Use baseline as the main reliable PushT result for this repo. Keep v1 as an
-interesting negative/diagnostic result: it creates a cleaner appearance split,
-but current planning success does not improve. Do not invest further in the
-current v2 family without simplifying the objective or changing the training
-scale/eval protocol.
+Historical Stage 2 decision: promote `v1_current` as the only AF candidate for
+a larger matched comparison. Stage 3 later found that `v1_current` ties baseline
+on final test1000 and does not provide a reliable PushT improvement. The current
+v2 family should not be expanded without simplifying the objective or changing
+the training scale/eval protocol.
 
 Raw machine-readable outputs:
 

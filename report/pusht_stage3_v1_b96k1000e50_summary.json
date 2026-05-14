@@ -1,0 +1,112 @@
+[
+  {
+    "best_val_epoch": 45,
+    "best_val_success_percent": 90.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "lewm_pusht_stage3_b96k1000e50_s3_seed3072",
+    "test_episodes": 1000,
+    "test_success_percent": 87.1,
+    "test_successes": 871,
+    "train_seed": 3072,
+    "variant_id": "baseline"
+  },
+  {
+    "best_val_epoch": 45,
+    "best_val_success_percent": 82.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "lewm_pusht_stage3_b96k1000e50_s3_seed3073",
+    "test_episodes": 1000,
+    "test_success_percent": 80.5,
+    "test_successes": 805,
+    "train_seed": 3073,
+    "variant_id": "baseline"
+  },
+  {
+    "best_val_epoch": 35,
+    "best_val_success_percent": 81.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "lewm_pusht_stage3_b96k1000e50_s3_seed3074",
+    "test_episodes": 1000,
+    "test_success_percent": 81.6,
+    "test_successes": 816,
+    "train_seed": 3074,
+    "variant_id": "baseline"
+  },
+  {
+    "best_val_epoch": 45,
+    "best_val_success_percent": 85.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "lewm_pusht_stage3_b96k1000e50_s3_seed3075",
+    "test_episodes": 1000,
+    "test_success_percent": 84.6,
+    "test_successes": 846,
+    "train_seed": 3075,
+    "variant_id": "baseline"
+  },
+  {
+    "best_val_epoch": 45,
+    "best_val_success_percent": 88.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "lewm_pusht_stage3_b96k1000e50_s3_seed3076",
+    "test_episodes": 1000,
+    "test_success_percent": 87.2,
+    "test_successes": 872,
+    "train_seed": 3076,
+    "variant_id": "baseline"
+  },
+  {
+    "best_val_epoch": 45,
+    "best_val_success_percent": 88.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3072",
+    "test_episodes": 1000,
+    "test_success_percent": 87.1,
+    "test_successes": 871,
+    "train_seed": 3072,
+    "variant_id": "v1_current"
+  },
+  {
+    "best_val_epoch": 45,
+    "best_val_success_percent": 81.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3073",
+    "test_episodes": 1000,
+    "test_success_percent": 78.9,
+    "test_successes": 789,
+    "train_seed": 3073,
+    "variant_id": "v1_current"
+  },
+  {
+    "best_val_epoch": 45,
+    "best_val_success_percent": 81.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3074",
+    "test_episodes": 1000,
+    "test_success_percent": 84.5,
+    "test_successes": 845,
+    "train_seed": 3074,
+    "variant_id": "v1_current"
+  },
+  {
+    "best_val_epoch": 45,
+    "best_val_success_percent": 84.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3075",
+    "test_episodes": 1000,
+    "test_success_percent": 84.5,
+    "test_successes": 845,
+    "train_seed": 3075,
+    "variant_id": "v1_current"
+  },
+  {
+    "best_val_epoch": 45,
+    "best_val_success_percent": 85.0,
+    "final_ckpt_exists": true,
+    "output_model_name": "aflewm_pusht_v1_stage3_b96k1000e50_s3_seed3076",
+    "test_episodes": 1000,
+    "test_success_percent": 86.1,
+    "test_successes": 861,
+    "train_seed": 3076,
+    "variant_id": "v1_current"
+  }
+]

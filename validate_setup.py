@@ -1,4 +1,5 @@
-"""Validate the reliable PushT reproduction setup."""
+"""Validate the AF-LeWM PushT Stage 3 setup."""
+import csv
 import os
 import sys
 from pathlib import Path
@@ -17,15 +18,20 @@ if os.name == "nt":
 errors = []
 warnings = []
 PUSHT_MIN_OFFICIAL_BYTES = 1_000_000_000
-STUDY_POLICIES = [
-    "runs/pusht_expert_train/lewm_pusht_reliable/lewm_pusht_reliable_epoch_10",
-    "runs/pusht_expert_train/aflewm_pusht_v1_reliable/aflewm_pusht_v1_reliable_epoch_10",
-    "runs/pusht_expert_train/aflewm_pusht_v2_reliable/aflewm_pusht_v2_reliable_epoch_10",
+ROOT = Path(__file__).resolve().parent
+STAGE3_SUMMARY = ROOT / "report" / "pusht_stage3_v1_b96k1000e50_summary.csv"
+STAGE3_REQUIRED_ARTIFACTS = [
+    ROOT / "report" / "pusht_stage3_protocol.md",
+    ROOT / "report" / "pusht_stage3_v1_b96k1000e50_summary.csv",
+    ROOT / "report" / "pusht_stage3_v1_b96k1000e50_paired.csv",
+    ROOT / "report" / "pusht_stage3_v1_b96k1000e50_val_curve.csv",
+    ROOT / "report" / "stage3_manifests" / "pusht_stage3_val_n100_seed9100.json",
+    ROOT / "report" / "stage3_manifests" / "pusht_stage3_test_n1000_seed9200.json",
 ]
 
 
 print("=" * 60)
-print("AF-LeWM-lite Reliable PushT Setup Validation")
+print("AF-LeWM PushT Setup Validation")
 print("=" * 60)
 
 print("\n[1/6] Checking core imports...")
@@ -76,18 +82,23 @@ else:
     errors.append(f"Dataset not found: {pusht_path}")
     print(f"  FAIL - {pusht_path} not found")
 
-print("\n[4/6] Checking reliable study checkpoints...")
-ckpts = []
-found_policies = []
-for policy in STUDY_POLICIES:
-    ckpt = cache_dir / f"{policy}_object.ckpt"
-    if ckpt.exists():
-        ckpts.append(ckpt)
-        found_policies.append(policy)
-        print(f"  OK - {policy}")
+print("\n[4/6] Checking Stage 3 repository artifacts...")
+for artifact in STAGE3_REQUIRED_ARTIFACTS:
+    if artifact.exists():
+        print(f"  OK - {artifact.relative_to(ROOT)}")
     else:
-        warnings.append(f"Study checkpoint not found: {policy}")
-        print(f"  MISSING - {policy}")
+        errors.append(f"Missing required Stage 3 artifact: {artifact.relative_to(ROOT)}")
+        print(f"  FAIL - {artifact.relative_to(ROOT)}")
+
+stage3_policies = []
+if STAGE3_SUMMARY.exists():
+    with STAGE3_SUMMARY.open(newline="") as fh:
+        for row in csv.DictReader(fh):
+            name = row["output_model_name"]
+            epoch = int(float(row["best_val_epoch"]))
+            stage3_policies.append(
+                f"runs/pusht_expert_train/{name}/{name}_epoch_{epoch}"
+            )
 
 print("\n[5/6] Testing model instantiation...")
 try:
@@ -133,7 +144,13 @@ except Exception as exc:
     errors.append(f"Environment creation failed: {exc}")
     print(f"  FAIL - {exc}")
 
-if ckpts:
+found_policies = []
+for policy in stage3_policies:
+    ckpt = cache_dir / f"{policy}_object.ckpt"
+    if ckpt.exists():
+        found_policies.append(policy)
+
+if found_policies:
     for policy in found_policies:
         try:
             model = swm.policy.AutoCostModel(policy)
@@ -146,7 +163,7 @@ if ckpts:
             errors.append(f"Checkpoint loading failed for {policy}: {exc}")
             print(f"  FAIL - {policy}: {exc}")
 else:
-    print("  SKIP - No reliable study checkpoints found yet")
+    print("  SKIP - No local Stage 3 checkpoints found; report artifacts are still checked.")
 
 print("\n" + "=" * 60)
 print("SUMMARY")
@@ -164,7 +181,7 @@ if errors:
     print(f"\n{len(errors)} error(s) must be fixed before running.")
     sys.exit(1)
 
-print("\nSETUP IS READY FOR THE RELIABLE PUSHT STUDY.")
+print("\nSETUP IS READY FOR THE STAGE 3 PUSHT CODEPATH.")
 print("\nCommands:")
-print("  Training:   python run_all.py --mode train --env pusht")
-print("  Evaluation: python run_all.py --mode eval --env pusht")
+print("  Status: python tools/run_pusht_stage3.py --mode status")
+print("  Run:    python tools/run_pusht_stage3.py --mode cycle")

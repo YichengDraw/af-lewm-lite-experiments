@@ -1,6 +1,7 @@
 import os
 import signal
 import sys
+import hashlib
 import json
 import time
 from contextlib import contextmanager
@@ -31,7 +32,12 @@ from omegaconf import OmegaConf, open_dict
 
 from jepa import JEPA
 from module import ARPredictor, Embedder, MLP, SIGReg
-from utils import get_column_normalizer, get_img_preprocessor, ModelObjectCallBack
+from utils import (
+    get_column_normalizer,
+    get_img_preprocessor,
+    ModelObjectCallBack,
+    WeightsCheckpointCallback,
+)
 
 
 class _GradientReversal(torch.autograd.Function):
@@ -164,20 +170,74 @@ def _cross_covariance_loss(x, y):
     return cov.square().mean()
 
 
-def _episode_split(dataset, train_fraction: float, seed: int) -> tuple[list[int], list[int]]:
+def _hash_int_list(values: list[int]) -> str:
+    payload = json.dumps([int(value) for value in values], separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _episode_splits(
+    dataset,
+    train_fraction: float,
+    seed: int,
+    val_fraction: float | None = None,
+    test_fraction: float | None = None,
+) -> tuple[list[int], list[int], list[int]]:
     num_episodes = len(dataset.lengths)
     if num_episodes < 2:
         raise ValueError("Episode-disjoint split requires at least two episodes")
     if not 0.0 < float(train_fraction) < 1.0:
         raise ValueError(f"train_split must be between 0 and 1, got {train_fraction}")
+    if val_fraction is None and test_fraction is None:
+        val_fraction = 1.0 - float(train_fraction)
+        test_fraction = 0.0
+    elif val_fraction is None:
+        val_fraction = 1.0 - float(train_fraction) - float(test_fraction)
+    elif test_fraction is None:
+        test_fraction = 1.0 - float(train_fraction) - float(val_fraction)
+
+    fractions = [float(train_fraction), float(val_fraction), float(test_fraction)]
+    if any(value < 0.0 for value in fractions):
+        raise ValueError(
+            f"Split fractions must be non-negative and sum to 1, got {fractions}"
+        )
+    if abs(sum(fractions) - 1.0) > 1e-6:
+        raise ValueError(f"Split fractions must sum to 1, got {fractions}")
+    if fractions[1] <= 0.0:
+        raise ValueError("val split must contain at least one episode")
 
     generator = torch.Generator().manual_seed(int(seed))
     perm = torch.randperm(num_episodes, generator=generator).tolist()
-    num_train = int(num_episodes * float(train_fraction))
+    num_train = int(num_episodes * fractions[0])
+    num_val = int(num_episodes * fractions[1])
     num_train = max(1, min(num_episodes - 1, num_train))
+    num_val = max(1, min(num_episodes - num_train, num_val))
+    if fractions[2] > 0.0 and num_episodes - num_train - num_val < 1:
+        num_val = max(1, num_val - 1)
     train_episodes = sorted(int(idx) for idx in perm[:num_train])
-    val_episodes = sorted(int(idx) for idx in perm[num_train:])
-    return train_episodes, val_episodes
+    val_episodes = sorted(int(idx) for idx in perm[num_train : num_train + num_val])
+    test_episodes = sorted(int(idx) for idx in perm[num_train + num_val :])
+    if fractions[2] > 0.0 and not test_episodes:
+        raise ValueError("test split requested but produced no episodes")
+    return train_episodes, val_episodes, test_episodes
+
+
+def _optional_int(value):
+    return None if value in (None, "null") else int(value)
+
+
+def _dataset_fingerprint(cfg):
+    dataset_name = cfg.data.dataset.name
+    path = Path(swm.data.utils.get_cache_dir(), f"{dataset_name}.h5")
+    if not path.exists():
+        return {"dataset_name": str(dataset_name), "dataset_path": str(path), "dataset_exists": False}
+    stat = path.stat()
+    return {
+        "dataset_name": str(dataset_name),
+        "dataset_path": str(path),
+        "dataset_exists": True,
+        "dataset_size_bytes": int(stat.st_size),
+        "dataset_mtime_ns": int(stat.st_mtime_ns),
+    }
 
 
 def _clip_indices_for_episodes(dataset, episode_indices: list[int]) -> list[int]:
@@ -314,7 +374,7 @@ def lejepa_forward(self, batch, stage, cfg):
     )
     return output
 
-@hydra.main(version_base=None, config_path="./config/train", config_name="lewm_pusht_official_budget")
+@hydra.main(version_base=None, config_path="./config/train", config_name="lewm_pusht_ablation")
 def run(cfg):
     pl.seed_everything(int(cfg.seed), workers=True)
 
@@ -323,9 +383,17 @@ def run(cfg):
     #########################
 
     dataset = swm.data.HDF5Dataset(**cfg.data.dataset, transform=None)
-    train_episodes, val_episodes = _episode_split(dataset, cfg.train_split, int(cfg.seed))
+    split_seed = int(cfg.get("split_seed", int(cfg.seed)))
+    train_episodes, val_episodes, test_episodes = _episode_splits(
+        dataset,
+        float(cfg.train_split),
+        split_seed,
+        cfg.get("val_split"),
+        cfg.get("test_split"),
+    )
     train_indices = _clip_indices_for_episodes(dataset, train_episodes)
     val_indices = _clip_indices_for_episodes(dataset, val_episodes)
+    test_indices = _clip_indices_for_episodes(dataset, test_episodes) if test_episodes else []
 
     transforms = [get_img_preprocessor(source='pixels', target='pixels', img_size=cfg.img_size)]
     
@@ -486,32 +554,46 @@ def run(cfg):
         raise RuntimeError(f"resume=True but checkpoint does not exist: {weights_ckpt_path}")
 
     logger = None
+    csv_logger = CSVLogger(save_dir=str(run_dir), name="metrics", version="")
     if cfg.wandb.enabled:
-        logger = WandbLogger(**cfg.wandb.config)
-        logger.log_hyperparams(OmegaConf.to_container(cfg))
+        wandb_logger = WandbLogger(**cfg.wandb.config)
+        wandb_logger.log_hyperparams(OmegaConf.to_container(cfg))
+        logger = [wandb_logger, csv_logger]
     else:
-        logger = CSVLogger(save_dir=str(run_dir), name="metrics", version="")
+        logger = csv_logger
 
     run_dir.mkdir(parents=True, exist_ok=True)
     with open(run_dir / "config.yaml", "w") as f:
         OmegaConf.save(cfg, f)
     split_metadata = {
-        "split": "episode_disjoint",
+        "split": "episode_disjoint_train_val_test" if test_episodes else "episode_disjoint",
         "seed": int(cfg.seed),
+        "split_seed": split_seed,
         "train_split": float(cfg.train_split),
+        "val_split": float(cfg.get("val_split", 1.0 - float(cfg.train_split) - float(cfg.get("test_split", 0.0)))),
+        "test_split": float(cfg.get("test_split", 0.0)),
         "num_episodes": len(dataset.lengths),
         "train_episode_count": len(train_episodes),
         "val_episode_count": len(val_episodes),
+        "test_episode_count": len(test_episodes),
         "train_sample_count": len(train_indices),
         "val_sample_count": len(val_indices),
+        "test_sample_count": len(test_indices),
         "normalizer_episode_scope": "train",
         "train_episodes": train_episodes,
         "val_episodes": val_episodes,
+        "test_episodes": test_episodes,
+        "train_episodes_sha256": _hash_int_list(train_episodes),
+        "val_episodes_sha256": _hash_int_list(val_episodes),
+        "test_episodes_sha256": _hash_int_list(test_episodes),
+        "dataset_fingerprint": _dataset_fingerprint(cfg),
     }
     with open(run_dir / "split_metadata.json", "w") as f:
         json.dump(split_metadata, f, indent=2)
 
     callbacks = []
+    if cfg.get("save_weights", True):
+        callbacks.append(WeightsCheckpointCallback(weights_ckpt_path))
     if cfg.get("dump_object", True):
         object_epoch_interval = int(
             cfg.get("object_epoch_interval", int(cfg.trainer.max_epochs) + 1)
@@ -543,17 +625,43 @@ def run(cfg):
     train_start_time = time.time()
     manager()
     train_elapsed_seconds = time.time() - train_start_time
+    wandb_metadata = {}
+    if cfg.wandb.enabled:
+        try:
+            wandb_logger = next(
+                candidate for candidate in trainer.loggers if isinstance(candidate, WandbLogger)
+            )
+            experiment = wandb_logger.experiment
+            wandb_metadata = {
+                "wandb_id": getattr(experiment, "id", None),
+                "wandb_name": getattr(experiment, "name", None),
+                "wandb_project": getattr(experiment, "project", None),
+                "wandb_entity": getattr(experiment, "entity", None),
+                "wandb_url": getattr(experiment, "url", None),
+            }
+        except Exception as exc:
+            wandb_metadata = {"wandb_metadata_error": repr(exc)}
+
+    limit_train_batches = cfg.trainer.get("limit_train_batches")
+    limit_val_batches = cfg.trainer.get("limit_val_batches")
     with open(run_dir / "train_metadata.json", "w") as f:
         json.dump(
             {
                 "output_model_name": str(cfg.output_model_name),
                 "seed": int(cfg.seed),
+                "split_seed": split_seed,
                 "max_epochs": int(cfg.trainer.max_epochs),
-                "limit_train_batches": int(cfg.trainer.limit_train_batches),
-                "limit_val_batches": int(cfg.trainer.limit_val_batches),
+                "limit_train_batches": limit_train_batches,
+                "limit_val_batches": limit_val_batches,
                 "batch_size": int(cfg.loader.batch_size),
+                "num_workers": int(cfg.loader.num_workers),
+                "optimizer_lr": float(cfg.optimizer.lr),
+                "optimizer_weight_decay": float(cfg.optimizer.weight_decay),
                 "model_params": int(total_params),
                 "train_elapsed_seconds": train_elapsed_seconds,
+                "weights_checkpoint_path": str(weights_ckpt_path),
+                "save_weights": bool(cfg.get("save_weights", True)),
+                **wandb_metadata,
             },
             f,
             indent=2,
