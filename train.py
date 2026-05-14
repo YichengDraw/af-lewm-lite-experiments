@@ -374,7 +374,7 @@ def lejepa_forward(self, batch, stage, cfg):
     )
     return output
 
-@hydra.main(version_base=None, config_path="./config/train", config_name="lewm_pusht_official_budget")
+@hydra.main(version_base=None, config_path="./config/train", config_name="lewm_pusht_ablation")
 def run(cfg):
     pl.seed_everything(int(cfg.seed), workers=True)
 

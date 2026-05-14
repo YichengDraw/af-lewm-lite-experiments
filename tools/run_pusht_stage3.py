@@ -1,4 +1,4 @@
-"""Official-aligned PushT Stage 3 runner for baseline vs AF-LeWM v1.
+"""Matched-budget PushT Stage 3 runner for baseline vs AF-LeWM v1.
 
 This runner is intentionally separate from the earlier short-budget ablation
 runner. Stage 3 needs locked eval manifests, checkpoint-by-checkpoint closed-loop
@@ -45,7 +45,13 @@ TEST_SPLIT = 0.1
 HISTORY_SPAN = 15
 GOAL_OFFSET_STEPS = 25
 DEFAULT_TRAIN_SEEDS = (3072, 3073, 3074, 3075, 3076)
-DEFAULT_EVAL_EPOCHS = tuple(range(5, 101, 5))
+DEFAULT_EVAL_EPOCHS = tuple(range(5, 51, 5))
+DEFAULT_RUN_LABEL = "b96k1000e50"
+DEFAULT_BATCH_SIZE = 96
+DEFAULT_LIMIT_TRAIN_BATCHES = 1000
+DEFAULT_LIMIT_VAL_BATCHES = 50
+DEFAULT_LOG_EVERY_N_STEPS = 50
+DEFAULT_SOLVER_BATCH_SIZE = 50
 
 
 @dataclass(frozen=True)
@@ -61,7 +67,7 @@ VARIANTS = {
         "baseline",
         "lewm_pusht_stage3",
         "lewm_pusht_stage3",
-        "Official-aligned LeWM baseline.",
+        "Matched-budget LeWM baseline.",
     ),
     "v1_current": Variant(
         "v1_current",
@@ -117,6 +123,17 @@ def weights_checkpoint_path(name: str) -> Path:
 
 def eval_filename(split: str, epoch: int, num_eval: int) -> str:
     return f"stage3_{split}_epoch{epoch}_num{num_eval}.txt"
+
+
+def portable_dataset_path() -> str:
+    return "${STABLEWM_HOME}/pusht_expert_train.h5"
+
+
+def portable_manifest_path(path: Path) -> str:
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def manifest_path(split: str, num_eval: int, seed: int) -> Path:
@@ -203,7 +220,7 @@ def make_manifest(split: str, num_eval: int, seed: int, *, force: bool = False) 
         "test_split": TEST_SPLIT,
         "history_span": HISTORY_SPAN,
         "goal_offset_steps": GOAL_OFFSET_STEPS,
-        "dataset": str(PUSHT_DATASET),
+        "dataset": portable_dataset_path(),
         "rows": rows,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -235,7 +252,7 @@ def write_chunk_manifest(
         **{k: v for k, v in base_manifest.items() if k != "rows"},
         "num_eval": len(rows),
         "rows": rows,
-        "parent_manifest_path": str(base_manifest_path),
+        "parent_manifest_path": portable_manifest_path(base_manifest_path),
         "parent_manifest_sha256": _sha256_json(base_manifest["rows"]),
         "parent_num_eval": int(base_manifest["num_eval"]),
         "chunk_index": chunk_index,
@@ -635,7 +652,7 @@ def val_num_eval_for_manifest(*, smoke: bool, val_manifest_kind: str) -> int:
 def terminal_epoch_for_run(epochs: list[int], *, smoke: bool) -> int:
     if smoke:
         return 1
-    return max(epochs) if epochs else 100
+    return max(epochs) if epochs else max(DEFAULT_EVAL_EPOCHS)
 
 
 def latest_val_loss(name: str) -> dict[str, str]:
@@ -1004,7 +1021,7 @@ def run_cycle(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run official-aligned PushT Stage 3.")
+    parser = argparse.ArgumentParser(description="Run matched-budget PushT Stage 3.")
     parser.add_argument(
         "--mode",
         choices=["manifest", "train", "eval", "test", "report", "status", "cycle", "all"],
@@ -1016,16 +1033,18 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--smoke", action="store_true")
-    parser.add_argument("--wandb", action="store_true")
-    parser.add_argument("--batch-size", type=int, default=None)
-    parser.add_argument("--run-label", default="")
-    parser.add_argument("--limit-train-batches", type=int, default=None)
-    parser.add_argument("--limit-val-batches", type=int, default=None)
-    parser.add_argument("--log-every-n-steps", type=int, default=None)
+    parser.add_argument("--wandb", dest="wandb", action="store_true")
+    parser.add_argument("--no-wandb", dest="wandb", action="store_false")
+    parser.set_defaults(wandb=True)
+    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
+    parser.add_argument("--run-label", default=DEFAULT_RUN_LABEL)
+    parser.add_argument("--limit-train-batches", type=int, default=DEFAULT_LIMIT_TRAIN_BATCHES)
+    parser.add_argument("--limit-val-batches", type=int, default=DEFAULT_LIMIT_VAL_BATCHES)
+    parser.add_argument("--log-every-n-steps", type=int, default=DEFAULT_LOG_EVERY_N_STEPS)
     parser.add_argument("--eval-retries", type=int, default=2)
     parser.add_argument("--num-samples", type=int, default=None)
     parser.add_argument("--n-steps", type=int, default=None)
-    parser.add_argument("--solver-batch-size", type=int, default=None)
+    parser.add_argument("--solver-batch-size", type=int, default=DEFAULT_SOLVER_BATCH_SIZE)
     parser.add_argument("--test-chunk-size", type=int, default=50)
     parser.add_argument("--val-manifest", choices=["small", "large"], default="small")
     args = parser.parse_args()

@@ -1,6 +1,6 @@
 # PushT Stage 3 Protocol
 
-Stage 3 tests whether AF-LeWM v1 improves over the official LeWM baseline on PushT under matched training and evaluation conditions.
+Stage 3 tests whether AF-LeWM v1 improves over the LeWM baseline on PushT under matched budgeted training and evaluation conditions.
 
 ## Training Anchor
 
@@ -23,7 +23,7 @@ AF-LeWM v1 keeps the same settings and adds only the appearance-factored branch:
 
 These AF-specific values define the v1 architecture for the primary comparison. They are not tuned during Stage 3.
 
-On the RTX 5090 32 GB host, AF-LeWM v1 does not fit batch size 128 because it performs the clean, aug_a, and aug_b encoder passes in the same training step. If the primary run uses the 32 GB host, both baseline and v1 are run with the same fallback batch size 96. The report must mark that run as official-aligned except for the matched batch-size fallback.
+On the RTX 5090 32 GB host, AF-LeWM v1 does not fit batch size 128 because it performs the clean, aug_a, and aug_b encoder passes in the same training step. Stage 3 therefore runs both baseline and v1 with the same fallback batch size 96 and reports the run as a matched 5090-budget comparison.
 
 A full official 100-epoch pass over all 1.58M train clips is not executable as a full 5-seed baseline/v1 study on a single RTX 5090 in a reasonable wall-clock budget. The executable 5090 profile is therefore:
 
@@ -37,7 +37,7 @@ A full official 100-epoch pass over all 1.58M train clips is not executable as a
 
 This profile keeps the official model, optimizer, learning rate, precision, data split, and planner eval, while making the training budget explicit and finishable. It is a budgeted stability comparison, not a claim that the official full-data 100-epoch LeWM result has been reproduced.
 
-The default W&B destination is entity `yicheng132024-southern-university-of-science-technology`, project `af-lewm-lite-stage3`. These can be overridden with `WANDB_ENTITY` and `WANDB_PROJECT`.
+The default W&B destination is entity `yicheng132024-southern-university-of-science-technology`, project `af-lewm-stage3`. These can be overridden with `WANDB_ENTITY` and `WANDB_PROJECT`.
 
 ## Splits And Manifests
 
@@ -92,4 +92,4 @@ The paired mean test delta is `+0.02` percentage points for v1 over baseline wit
 
 ## Existing Remote Baseline
 
-The SSH 5090 host already contains a PushT LeWM checkpoint trained with batch size 128 and learning rate 5e-5 for 10 epochs. It is useful as a reference row and smoke sanity check. It is not the primary Stage 3 baseline because it lacks the full Stage 3 split, manifest, W&B, and 100-epoch provenance.
+The SSH 5090 host already contains a PushT LeWM checkpoint trained with batch size 128 and learning rate 5e-5 for 10 epochs. It is useful as a reference row and smoke sanity check. It is not the primary Stage 3 baseline because it lacks the Stage 3 split, locked manifests, W&B run lineage, and matched `b96k1000e50` training budget.

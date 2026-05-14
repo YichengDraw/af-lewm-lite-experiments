@@ -11,8 +11,9 @@ appearance-related losses while the planner still uses the dynamics latent.
 
 Pre-Stage-2 gate: after Stage 1, the eval goal synchronization path was hardened
 and AF independence loss was changed from raw covariance to standardized
-cross-covariance. Stage 2 should retrain the selected AF variants from scratch;
-the Stage 1 table remains a selection signal for which structures to scale.
+cross-covariance. Stage 2 then retrained the selected AF variants from scratch;
+the Stage 1 table remains a historical selection signal for which structures
+were scaled.
 
 | Variant | Family | Seed 42 | Seed 43 | Successes | Episodes | Aggregate | Delta vs baseline |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |

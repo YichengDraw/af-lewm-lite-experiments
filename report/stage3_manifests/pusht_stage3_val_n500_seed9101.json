@@ -1,5 +1,5 @@
 {
-  "dataset": "C:\\Users\\yiche\\.stable-wm\\pusht_expert_train.h5",
+  "dataset": "${STABLEWM_HOME}/pusht_expert_train.h5",
   "goal_offset_steps": 25,
   "history_span": 15,
   "manifest_type": "pusht_stage3_eval_manifest",

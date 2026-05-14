@@ -1,4 +1,4 @@
-"""Reproduction helper for the reliable PushT AF-LeWM-lite study."""
+"""Legacy Stage 1/2 helper for the PushT AF-LeWM study."""
 import argparse
 import os
 import subprocess
@@ -24,17 +24,17 @@ PUSHT_MIN_OFFICIAL_BYTES = 1_000_000_000
 PUSHT_STUDY_RUNS = [
     {
         "name": "baseline",
-        "train_config": "lewm_pusht_official_budget",
+        "train_config": "lewm_pusht_ablation",
         "output_model_name": "lewm_pusht_reliable",
     },
     {
         "name": "af_v1",
-        "train_config": "aflewm_pusht_official_budget",
+        "train_config": "aflewm_pusht_v1_ablation",
         "output_model_name": "aflewm_pusht_v1_reliable",
     },
     {
         "name": "af_v2",
-        "train_config": "aflewm_pusht_v2_official_budget",
+        "train_config": "aflewm_pusht_v2_ablation",
         "output_model_name": "aflewm_pusht_v2_reliable",
     },
 ]
@@ -69,7 +69,7 @@ def require_pusht_dataset() -> Path | None:
 
 def check_status() -> bool:
     print("=" * 70)
-    print("AF-LeWM-lite Reliable PushT Status")
+    print("AF-LeWM Legacy PushT Status")
     print(f"STABLEWM_HOME: {CACHE_DIR}")
     print("=" * 70)
 
@@ -177,7 +177,7 @@ def run_eval(extra_args: list[str] | None = None, num_eval: int | None = None, e
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="AF-LeWM-lite reliable PushT runner")
+    parser = argparse.ArgumentParser(description="Legacy AF-LeWM PushT runner")
     parser.add_argument("--mode", choices=["train", "eval", "both", "status"], default="status")
     parser.add_argument("--env", choices=["pusht"], default="pusht", help="Kept for CLI compatibility")
     parser.add_argument("--epochs", type=int, default=None, help="Override training epochs")

@@ -1,14 +1,14 @@
-# Appearance-Factored LeWM-lite (AF-LeWM-lite) PushT Experiments
+# Appearance-Factored LeWM (AF-LeWM) PushT Experiments
 
-This repository is a compact, reliability-checked PushT study for Appearance-Factored LeWM-lite (AF-LeWM-lite), a LeWM-style JEPA world model with an appearance-shaping branch.
+This repository is a reliability-checked PushT study for Appearance-Factored LeWM (AF-LeWM), a LeWM-style JEPA world model with an appearance-shaping branch.
 
 Here, `AF` means `Appearance-Factored`: the added branch factors appearance information into `app_emb` while planning still uses the dynamics latent `emb`. The action block encoder is inherited from baseline LeWM.
 
 The repo now focuses on one primary experiment family:
 
 - `Baseline LeWM`
-- `Appearance-Factored LeWM-lite v1`: shared encoder, dynamics projection, appearance projection, invariance loss, independence penalty
-- `Appearance-Factored LeWM-lite v2`: historical ablation only; v2 was not promoted after the earlier reliability checks
+- `Appearance-Factored LeWM v1`: shared encoder, dynamics projection, appearance projection, invariance loss, independence penalty
+- `Appearance-Factored LeWM v2`: historical ablation only; v2 was not promoted after the earlier reliability checks
 
 Planning uses only the dynamics latent. The appearance branch is a training-time shaping signal.
 
@@ -51,10 +51,10 @@ does not support a reliable v1 advantage under the current IID PushT protocol.
 
 ## Model Pipeline
 
-![AF-LeWM-lite model pipeline](report/aflewm_model_pipeline.png)
+![AF-LeWM model pipeline](report/aflewm_model_pipeline.png)
 
-The tracked PNG is the reviewed architecture comparison image. The old Mermaid
-draft remains at `report/diagrams/aflewm_model_pipeline.mmd` for provenance.
+The tracked PNG is the reviewed architecture image. Its Mermaid source remains
+at `report/diagrams/aflewm_model_pipeline.mmd` for provenance.
 
 ## Reliable Experiment Flow
 
@@ -80,14 +80,14 @@ The reliable rerun is designed to avoid these experiment-validity failures:
 .
 |- train.py                         # PushT training entrypoint
 |- eval.py                          # PushT CEM planning evaluation
-|- jepa.py                          # JEPA model with AF-LeWM-lite heads
+|- jepa.py                          # JEPA model with AF-LeWM heads
 |- module.py                        # Predictor, MLP, SIGReg helpers
-|- run_all.py                       # PushT status/train/eval helper
+|- run_all.py                       # Legacy Stage 1/2 PushT helper
 |- validate_setup.py                # Environment, dataset, checkpoint validation
-|- config/train/                    # Three matched PushT training configs
+|- config/train/                    # Stage 3 configs plus historical ablation configs
 |- config/eval/                     # PushT evaluation config and CEM solver config
-|- tools/                           # Dataset download and report generation
-`- report/                          # PDF, TeX, diagrams, plots, CSV/JSON summary
+|- tools/                           # Dataset, ablation, and Stage 3 runners
+`- report/                          # Diagrams, manifests, and CSV/JSON summaries
 ```
 
 ## Installation
@@ -128,7 +128,7 @@ Validate the local setup:
 
 ```bash
 python validate_setup.py
-python run_all.py --mode status --env pusht
+python tools/run_pusht_stage3.py --mode status
 ```
 
 ## Run
@@ -158,25 +158,8 @@ python tools/run_pusht_stage3.py --mode status --run-label b96k1000e50 \
   --ids baseline v1_current
 ```
 
-The older `run_all.py` flow remains useful for quick legacy checks:
-
-```bash
-python run_all.py --mode train --env pusht
-```
-
-Evaluate each epoch-10 checkpoint on two 50-start seeds:
-
-```bash
-python run_all.py --mode eval --env pusht
-```
-
-The reliable run names are:
-
-```text
-lewm_pusht_reliable
-aflewm_pusht_v1_reliable
-aflewm_pusht_v2_reliable
-```
+Legacy Stage 1/2 helpers remain in the tree for provenance, but the command
+above is the canonical current experiment entry point.
 
 ## Earlier Ablations
 
@@ -234,20 +217,6 @@ python tools/run_pusht_stage3.py --mode report --run-label b96k1000e50 \
   --epochs 5 10 15 20 25 30 35 40 45 50
 ```
 
-Regenerate legacy official-budget JSON, CSV, plots, diagrams, and the LaTeX
-source:
-
-```bash
-python tools/generate_pusht_official_report_assets.py
-```
-
-Build the legacy PDF:
-
-```bash
-xelatex -interaction=nonstopmode -halt-on-error -output-directory=report report/pusht_aflewm_official_summary.tex
-xelatex -interaction=nonstopmode -halt-on-error -output-directory=report report/pusht_aflewm_official_summary.tex
-```
-
 Primary Stage 3 report artifacts:
 
 - `report/pusht_stage3_protocol.md`
@@ -256,15 +225,6 @@ Primary Stage 3 report artifacts:
 - `report/pusht_stage3_v1_b96k1000e50_val_curve.csv`
 - JSON companions for the same tables
 - `report/stage3_manifests/`
-
-Legacy official-budget report artifacts:
-
-- `report/pusht_aflewm_official_summary.pdf`
-- `report/pusht_aflewm_official_summary.tex`
-- `report/pusht_official_budget_results.json`
-- `report/pusht_official_budget_summary.csv`
-- `report/pusht_success_rate.png`
-- `report/pusht_val_core_loss.png`
 
 ## License
 
